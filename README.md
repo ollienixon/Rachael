@@ -6,12 +6,4 @@ An IRC bot written in Ruby using the [Cinch IRC bot framework](https://github.co
 Commands
 --------
 
-### Basic
-
-* join channel
-* part channel
-* quit message
-* nick newnick
-* help
-
-
+http://sjis.me/help.html
