@@ -58,7 +58,7 @@ bot = Cinch::Bot.new do
     c.realname          = "Rachael"
     c.user              = "Rachael"
     c.channels          = []
-    c.plugins.plugins   = [Basic, UrbanDictionary, Weather, Alias, Lastfm, Compare, NowPlaying, Uri, Translate, Twitter, Hello, Eightball, Pick]
+    c.plugins.plugins   = [Basic, UrbanDictionary, Weather, Alias, Lastfm, Compare, NowPlaying, Uri, Translate, Twitter, Hello, Eightball, Pick, Tvrage]
   end
 end
 
