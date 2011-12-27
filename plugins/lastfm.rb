@@ -29,8 +29,7 @@ class Lastfm
 
 	# Last.fm user info
 
-	match /lastfm$/, method: :user_info
-	match /lastfm (.*)/, method: :user_info
+	match /lastfm(?: (.+))?/, method: :user_info
 
 	def user_info(m, query = nil)
 		return unless ignore_nick(m.user.nick).nil?
@@ -87,8 +86,7 @@ class Lastfm
 
 	# Last.fm 7 day charts
 
-	match /charts (.*)/, method: :charts
-	match /charts$/, method: :charts
+	match /charts(?: (.+))?/, method: :charts
 
 	def charts(m, query = nil)
 		return unless ignore_nick(m.user.nick).nil?
@@ -173,8 +171,7 @@ class Lastfm
 
 	# Last played/Currently playing Track
 
-	match /np (.+)/, method: :now_playing
-	match /np$/, method: :now_playing
+	match /np(?: (.+))?/, method: :now_playing
 
 	def now_playing(m, query = nil)
 		return unless ignore_nick(m.user.nick).nil?
