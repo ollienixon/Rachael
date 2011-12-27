@@ -11,7 +11,7 @@ class Answers
 
 			@bitly = Bitly.new($BITLYUSER, $BITLYAPI)
 			 
-			@url = open("http://api.wolframalpha.com/v2/query?appid=#{$WOLFRAMAPI[rand($WOLFRAMAPI.length)]}&input=#{URI.escape(query)}")
+			@url = open("http://api.wolframalpha.com/v2/query?appid=#{$WOLFRAMAPI}&input=#{URI.escape(query)}")
 			@url = Nokogiri::XML(@url)
 
 			input     = @url.xpath("//pod[@id='Input']/subpod/plaintext").text.gsub(/\s+/, ' ')
