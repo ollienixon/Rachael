@@ -1,22 +1,36 @@
 # encoding: utf-8
 
-class Hello
-  include Cinch::Plugin
+class Insult
+	include Cinch::Plugin
 
-  match /hi/
-  def execute(m)
-    begin
-    #  url = Nokogiri::HTML(open("http://www.insultgenerator.org/").read)
-    #  insult = url.xpath("//table/tr/td").text.strip
-    #  m.reply "#{m.user.nick}: #{insult}"
+	match /insult$/, method: :hey
+	match /insult (.+)/, method: :hey_faggot
 
-      lines = Integer(%x(wc -l insult.txt)[/^\d+/])
+	def hey(m)
+		return unless ignore_nick(m.user.nick).nil?
 
-      f = File.open('insult.txt')
-      a = f.readlines
-      m.reply "#{m.user.nick}: #{a[rand(lines)]}"
-    rescue
-      m.reply "#{m.user.nick}: Hi"
-    end
-  end
+		begin
+			lines = Integer(%x(wc -l insult.txt)[/^\d+/])
+
+			f = File.open('insult.txt')
+			a = f.readlines
+			m.reply a[rand(lines)], true
+		rescue
+			m.reply "Hi", true
+		end
+	end
+
+	def hey_faggot(m, person)
+		return unless ignore_nick(m.user.nick).nil?
+
+		begin
+			lines = Integer(%x(wc -l insult.txt)[/^\d+/])
+
+			f = File.open('insult.txt')
+			a = f.readlines
+			m.reply "#{person}: #{a[rand(lines)]}"
+		rescue
+			m.reply "#{person}: Hi"
+		end
+	end
 end

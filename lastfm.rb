@@ -1,336 +1,268 @@
 # encoding: utf-8
 
-$apiKey = ""
-
-class Alias
-  include Cinch::Plugin
-
-  match /alias (\S+)/
-  def execute(m, query)
-    f = File.open("./lastfm.xml")
-    @items = Nokogiri::XML(f)
-    f.close
-
-    check = @items.xpath("//users/nick[@irc='#{m.user.nick.downcase}']").text
-
-    if check == ""
-      @items.xpath('//users').each do |xml|
-        nick = Nokogiri::XML::Node.new "nick", @items
-        nick['irc'] = m.user.nick.downcase
-        nick.content = URI.escape(query.downcase)
-        xml.add_child(nick)
-      end
-    else
-      @items.xpath("//users/nick[@irc='#{m.user.nick.downcase}']").each do |oof|
-        oof.content = URI.escape(query.downcase)
-      end
-    end
-
-    file = File.open("./lastfm.xml",'w')
-    file.puts @items.to_xml
-    file.close
-
-    m.reply "#{m.user.nick}: last.fm user updated to: #{query}"
-  end
-
-end
-
-=begin
-
-    Last.fm charts
-
-=end
-
 class Lastfm
-  include Cinch::Plugin
+	include Cinch::Plugin
 
-  match /lastfm (.+)/, method: :charts_user
-  match /lastfm$/, method: :charts
 
-  def charts_user(m, query)
+	# Check the DB for stored usernames
 
-    retrys = 2
+	def get_lastfm(m, param) 
+		if param == '' || param.nil?
+			username = LastfmDB.first(:nick => m.user.nick.downcase)
+			if username.nil?
+				m.reply "last.fm username not provided nor on file."
+				return nil
+			else
+				return username.username
+			end
+		else
+			username = LastfmDB.first(:nick => param.downcase)
+			if username.nil?
+				return param.strip
+			else
+				return username.username
+			end
+		end
+	end 
 
-    begin
-      check = Nokogiri::XML(open("./lastfm.xml").read)
-      check = check.xpath("//users/nick[@irc='#{URI.escape(query.downcase)}']").text
 
-      if check == "" 
-        var = URI.escape(query)
-        user = "#{var}"
-      else
-        var = check
-        user = "#{URI.escape(query)} (#{var})"
-      end
 
-      result = Nokogiri::XML(open("http://ws.audioscrobbler.com/2.0/?method=user.getweeklyartistchart&user=#{var}&api_key=#{$apiKey}", :read_timeout=>3).read)
-      top_artists = result.xpath("//weeklyartistchart/artist")[0..4]
-      reply = "Top 5 Weekly artists for #{user}: "
-      top_artists.each do |artist|
-        name = artist.xpath("name").text
-        count = artist.xpath("playcount").text
-        reply = reply + "#{name} (#{count}), "
-      end
-      reply = reply[0..reply.length-3]
-    rescue Timeout::Error
-      if retrys > 0
-        retrys = retrys - 1
-        retry
-      else
-        reply = "Timeout error"
-      end
-    rescue
-      reply = "The user '#{var}' doesn't have a Last.fm account"
-    end
-    m.reply "0,4Last.fm #{reply}"
-  end
+	# Last.fm user info
 
-  def charts(m)
-    user = Nokogiri::XML(open("./lastfm.xml").read)
-    user = user.xpath("//nick[@irc='#{m.user.nick.downcase}']").text
+	match /lastfm$/, method: :user_info
+	match /lastfm (.*)/, method: :user_info
 
-    retrys = 2
+	def user_info(m, query = nil)
+		return unless ignore_nick(m.user.nick).nil?
 
-    begin
-      result = Nokogiri::XML(open("http://ws.audioscrobbler.com/2.0/?method=user.getweeklyartistchart&user=#{URI.escape(user)}&api_key=#{$apiKey}", :read_timeout=>3).read)
-      top_artists = result.xpath("//weeklyartistchart/artist")[0..4]
-      reply = "Top 5 Weekly artists for #{m.user.nick} (#{user}): "
-      top_artists.each do |artist|
-        name = artist.xpath("name").text
-        count = artist.xpath("playcount").text
-        reply = reply + "#{name} (#{count}), "
-      end
-      reply = reply[0..reply.length-3]
-    rescue Timeout::Error
-      if retrys > 0
-        retrys = retrys - 1
-        retry
-      else
-        reply = "Timeout error"
-      end
-    rescue
-      reply = "The user '#{user}' doesn't have a Last.fm account"
-    end
-    m.reply "0,4Last.fm #{reply}"
-  end
-end
+		username = get_lastfm(m, query)
+		return if username.nil?
 
-=begin
+		retrys = 2
 
-    Compare users
+		begin
+			result = Nokogiri::XML(open("http://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=#{username}&api_key="+$LASTFMAPI, :read_timeout=>3).read)
 
-=end
+			user          = result.xpath("//user/name").text
+			realname      = result.xpath("//user/realname").text
+			age           = result.xpath("//user/age").text
+			sex           = result.xpath("//user/gender").text
+			location      = result.xpath("//user/country").text
+			playcount     = result.xpath("//user/playcount").text
 
-class Compare
-  include Cinch::Plugin
+			playcount = playcount.reverse.gsub(%r{([0-9]{3}(?=([0-9])))}, "\\1,").reverse
 
-  match /compare (\S+)$/, method: :compare
-  match /compare (\S+) (\S+)/, method: :compare_two
+			age = "–" if age.length < 1
+			sex = "–" if sex.length < 1
+			location = "–" if location.length < 1
 
-  def compare_two(m, one, two)
+			realname = ""+realname+" " if realname.length > 1
 
-    retrys = 2
+			reply = "#{realname}#{user} (#{age}/#{sex}/#{location}). #{playcount} Scrobbles. Overall Top Artists: "
 
-    begin
+			result = Nokogiri::XML(open("http://ws.audioscrobbler.com/2.0/?method=user.gettopartists&user=#{username}&period=overall&limit=5&api_key="+$LASTFMAPI, :read_timeout=>3).read)
 
-      file = Nokogiri::XML(open("./lastfm.xml").read)
-      userone = file.xpath("//users/nick[@irc='#{URI.escape(one.downcase)}']").text
-      usertwo = file.xpath("//users/nick[@irc='#{URI.escape(two.downcase)}']").text
+			top_artists = result.xpath("//topartists/artist")[0..4]
 
-      if userone == "" 
-        value1 = URI.escape(one)
-        userone = URI.escape(one)
-      else
-        value1 = URI.escape(userone)
-        userone = "#{one} (#{userone})"
-      end
+			top_artists.each do |artist|
+				name = artist.xpath("name").text
+				count = artist.xpath("playcount").text
+				reply = reply + "#{name} (#{count}), "
+			end
+			reply = reply[0..reply.length-3]
+		rescue Timeout::Error
+			if retrys > 0
+				retrys = retrys - 1
+				retry
+			else
+				reply = "Timeout error"
+			end
+		rescue
+			reply = "The user '#{username}' doesn't have a Last.fm account"
+		end
+		m.reply "0,4Last.fm #{reply}"
+	end
 
-      if usertwo == "" 
-        value2 = URI.escape(two)
-        usertwo = URI.escape(two)
-      else
-        value2 = URI.escape(usertwo)
-        usertwo = "#{two} (#{usertwo})"
-      end
 
-      result = Nokogiri::XML(open("http://ws.audioscrobbler.com/2.0/?method=tasteometer.compare&type1=user&type2=user&value1=#{value1}&value2=#{value2}&api_key=#{$apiKey}", :read_timeout=>3).read)
-      score = result.xpath("//score").text
 
-      common = result.xpath("//artists/artist")[0..4]
-      commonlist = ""
-      common.each do |getcommon|
-        artist = getcommon.xpath("name").text
-        commonlist = commonlist + "#{artist}, "
-      end
-      commonlist = commonlist[0..commonlist.length-3]
-      commonlist = "Common artists include: #{commonlist}" if commonlist != ""
+	# Last.fm 7 day charts
 
-      score = score[2..4]
-      scr = "#{score.to_i/10}.#{score.to_i % 10}"
+	match /charts (.*)/, method: :charts
+	match /charts$/, method: :charts
 
-      reply = "#{userone} vs #{usertwo}: #{scr}%. #{commonlist}"
-    rescue Timeout::Error
-      if retrys > 0
-        retrys = retrys - 1
-        retry
-      else
-        reply = "Timeout error"
-      end
-    rescue
-      reply = "Error"
-    end
-    m.reply "0,4Last.fm #{reply}"
-  end
+	def charts(m, query = nil)
+		return unless ignore_nick(m.user.nick).nil?
 
-  def compare(m, query)
+		username = get_lastfm(m, query)
+		return if username.nil?
 
-    retrys = 2
+		retrys = 2
 
-    begin
+		begin
+			result = Nokogiri::XML(open("http://ws.audioscrobbler.com/2.0/?method=user.gettopartists&user=#{username}&period=7day&limit=5&api_key="+$LASTFMAPI, :read_timeout=>3).read)
+			top_artists = result.xpath("//topartists/artist")[0..4]
+			reply = "Top 5 Weekly artists for #{username}: "
+			top_artists.each do |artist|
+				name = artist.xpath("name").text
+				count = artist.xpath("playcount").text
+				reply = reply + "#{name} (#{count}), "
+			end
+			reply = reply[0..reply.length-3]
+		rescue Timeout::Error
+			if retrys > 0
+				retrys = retrys - 1
+				retry
+			else
+				reply = "Timeout error"
+			end
+		rescue
+			reply = "The user '#{username}' doesn't have a Last.fm account"
+		end
+		m.reply "0,4Last.fm #{reply}"
+	end
 
-      file = Nokogiri::XML(open("./lastfm.xml").read)
-      user = file.xpath("//nick[@irc='#{m.user.nick.downcase}']").text
-      usertwo = file.xpath("//users/nick[@irc='#{URI.escape(query.downcase)}']").text
 
-      if usertwo == "" 
-        value2 = URI.escape(query)
-        usertwo = query
-      else
-        value2 = URI.escape(usertwo)
-        usertwo = "#{query} (#{usertwo})"
-      end
 
-      result = Nokogiri::XML(open("http://ws.audioscrobbler.com/2.0/?method=tasteometer.compare&type1=user&type2=user&value1=#{URI.escape(user)}&value2=#{value2}&api_key=#{$apiKey}", :read_timeout=>3).read)
-      score = result.xpath("//score").text
+	# Compare two users
 
-      common = result.xpath("//artists/artist")[0..4]
-      commonlist = ""
-      common.each do |getcommon|
-        artist = getcommon.xpath("name").text
-        commonlist = commonlist + "#{artist}, "
-      end
-      commonlist = commonlist[0..commonlist.length-3]
-      commonlist = "Common artists include: #{commonlist}" if commonlist != ""
+	match /compare (\S+)$/, method: :compare
+	match /compare (\S+) (\S+)/, method: :compare
 
-      score = score[2..4]
-      scr = "#{score.to_i/10}.#{score.to_i % 10}"
+	def compare(m, one, two = nil)
+		return unless ignore_nick(m.user.nick).nil?
 
-      reply = "#{m.user.nick} (#{user}) vs #{usertwo}: #{scr}%. #{commonlist}"
-    rescue Timeout::Error
-      if retrys > 0
-        retrys = retrys - 1
-        retry
-      else
-        reply = "Timeout error"
-      end
-    rescue
-      reply = "Error"
-    end
-    m.reply "0,4Last.fm #{reply}"
-  end
-end
+		userone = get_lastfm(m, one)
+		return if userone.nil?
 
-=begin
+		usertwo = get_lastfm(m, two)
+		return if usertwo.nil?
 
-    Get last played track
+		retrys = 2
 
-=end
+		begin
+			result = Nokogiri::XML(open("http://ws.audioscrobbler.com/2.0/?method=tasteometer.compare&type1=user&type2=user&value1=#{userone}&value2=#{usertwo}&api_key="+$LASTFMAPI, :read_timeout=>3).read)
+			score = result.xpath("//score").text
 
-class NowPlaying
-  include Cinch::Plugin
+			common = result.xpath("//artists/artist")[0..4]
+			commonlist = ""
+			common.each do |getcommon|
+				artist = getcommon.xpath("name").text
+				commonlist = commonlist + "#{artist}, "
+			end
+			commonlist = commonlist[0..commonlist.length-3]
+			commonlist = "Common artists include: #{commonlist}" if commonlist != ""
 
-  match /np (.+)/, method: :np_user
-  match /np$/, method: :np
+			score = score[2..4]
+			scr = "#{score.to_i/10}.#{score.to_i % 10}"
 
-  def np_user(m, query)
+			reply = "#{userone} vs #{usertwo}: #{scr}%. #{commonlist}"
+		rescue Timeout::Error
+			if retrys > 0
+				retrys = retrys - 1
+				retry
+			else
+				reply = "Timeout error"
+			end
+		rescue
+			reply = "Error"
+		end
+		m.reply "0,4Last.fm #{reply}"
+	end
 
-    retrys = 2
 
-    begin
 
-      check = Nokogiri::XML(open("./lastfm.xml").read)
-      check = check.xpath("//users/nick[@irc='#{URI.escape(query.downcase)}']").text
+	# Last played/Currently playing Track
 
-      if check == "" 
-        var = URI.escape(query)
-        user = "#{var}"
-      else
-        var = check
-        user = "#{URI.escape(query)} (#{var})"
-      end
-      
-      result = Nokogiri::XML(open("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{var}&api_key=#{$apiKey}", :read_timeout=>3).read)
+	match /np (.+)/, method: :now_playing
+	match /np$/, method: :now_playing
 
-      artist  = result.xpath("//recenttracks/track[1]/artist").text
-      track   = result.xpath("//recenttracks/track[1]/name").text
-      now     = result.xpath("//recenttracks/track[1]/@nowplaying").text
+	def now_playing(m, query = nil)
+		return unless ignore_nick(m.user.nick).nil?
 
-      tagurl = Nokogiri::XML(open("http://ws.audioscrobbler.com/2.0/?method=artist.gettoptags&artist=#{URI.escape(artist)}&api_key=#{$apiKey}", :read_timeout=>3).read)
-      tags = tagurl.xpath("//toptags/tag")[0..3]
-      taglist = ""
-      tags.each do |gettags|
-        tag = gettags.xpath("name").text
-        taglist = taglist + "#{tag}, "
-      end
-      taglist = taglist[0..taglist.length-3]
-      taglist = "(#{taglist})" if taglist != ""
+		username = get_lastfm(m, query)
+		return if username.nil?
 
-      if now == "true"
-        reply = "#{user} is playing: \"#{track}\" by #{artist} #{taglist}"
-      else
-        reply = "#{user} last played: \"#{track}\" by #{artist} #{taglist}"
-      end
-    rescue Timeout::Error
-      if retrys > 0
-        retrys = retrys - 1
-        retry
-      else
-        reply = "Timeout error"
-      end
-    rescue
-      reply = "Error"
-    end
-      m.reply "0,4Last.fm #{reply}"
-  end
+		retrys = 2
 
-  def np(m)
-    user = Nokogiri::XML(open("./lastfm.xml").read)
-    user = user.xpath("//nick[@irc='#{m.user.nick.downcase}']").text
+		begin
+			result = Nokogiri::XML(open("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{username}&limit=1&api_key="+$LASTFMAPI, :read_timeout=>3).read)
 
-    retrys = 2
+			artist  = result.xpath("//recenttracks/track[1]/artist").text
+			track   = result.xpath("//recenttracks/track[1]/name").text
+			now     = result.xpath("//recenttracks/track[1]/@nowplaying").text
 
-    begin
-      result = Nokogiri::XML(open("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=#{URI.escape(user)}&api_key=#{$apiKey}", :read_timeout=>3).read)
+			tagurl = Nokogiri::XML(open("http://ws.audioscrobbler.com/2.0/?method=artist.gettoptags&artist=#{URI.escape(artist)}&api_key="+$LASTFMAPI, :read_timeout=>3).read)
+			tags = tagurl.xpath("//toptags/tag")[0..3]
+			taglist = ""
+			tags.each do |gettags|
+				tag = gettags.xpath("name").text
+				taglist = taglist + "#{tag}, "
+			end
+			taglist = taglist[0..taglist.length-3]
+			taglist = "(#{taglist})" if taglist != ""
 
-      artist  = result.xpath("//recenttracks/track[1]/artist").text
-      track   = result.xpath("//recenttracks/track[1]/name").text
-      now     = result.xpath("//recenttracks/track[1]/@nowplaying").text
+			if now == "true"
+				reply = "#{username} is playing: \"#{track}\" by #{artist} #{taglist}"
+			else
+				reply = "#{username} last played: \"#{track}\" by #{artist} #{taglist}"
+			end
+		rescue Timeout::Error
+			if retrys > 0
+				retrys = retrys - 1
+				retry
+			else
+				reply = "Timeout error"
+			end
+		rescue
+			reply = "Error"
+		end
+		m.reply "0,4Last.fm #{reply}"
+	end
 
-      tagurl = Nokogiri::XML(open("http://ws.audioscrobbler.com/2.0/?method=artist.gettoptags&artist=#{URI.escape(artist)}&api_key=#{$apiKey}", :read_timeout=>3).read)
-      tags = tagurl.xpath("//toptags/tag")[0..3]
-      taglist = ""
-      tags.each do |gettags|
-        tag = gettags.xpath("name").text
-        taglist = taglist + "#{tag}, "
-      end
-      taglist = taglist[0..taglist.length-3]
-      taglist = "(#{taglist})" if taglist != ""
 
-      if now == "true"
-        reply = "#{m.user.nick} (#{user}) is playing: \"#{track}\" by #{artist} #{taglist}"
-      else
-        reply = "#{m.user.nick} (#{user}) last played: \"#{track}\" by #{artist} #{taglist}"
-      end
-    rescue Timeout::Error
-      if retrys > 0
-        retrys = retrys - 1
-        retry
-      else
-        reply = "Timeout error"
-      end
-    rescue
-      reply = "The user '#{user}' doesn't have a Last.fm account"
-    end
-    m.reply "0,4Last.fm #{reply}"
-  end
+
+	# Artist Info
+
+	match /artist (.+)/, method: :artist_info
+
+	def artist_info(m, query)
+		return unless ignore_nick(m.user.nick).nil?
+
+		begin
+			artistinfo = Nokogiri::XML(open("http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=#{URI.escape(query)}&api_key="+$LASTFMAPI))
+			toptracks  = Nokogiri::XML(open("http://ws.audioscrobbler.com/2.0/?method=artist.gettoptracks&artist=#{URI.escape(query)}&limit=3&autocorrect=1&api_key="+$LASTFMAPI))    
+
+			artist     = artistinfo.xpath("//lfm/artist/name").text
+			plays      = artistinfo.xpath("//lfm/artist/stats/playcount").text
+			listeners  = artistinfo.xpath("//lfm/artist/stats/listeners").text
+			url        = artistinfo.xpath("//lfm/artist/url").text
+
+			tags = artistinfo.xpath("//tags/tag")[0..2]
+			taglist = ""
+			tags.each do |gettags|
+				tag = gettags.xpath("name").text
+				taglist = taglist + "#{tag}, "
+			end
+			taglist = taglist[0..taglist.length-3]
+			taglist = "Tagged as: #{taglist}. " if taglist != ""
+
+			tracks = toptracks.xpath("//toptracks/track")
+			tracklist = ""
+			tracks.each do |gettracks|
+				track = gettracks.xpath("name").text
+				tracklist = tracklist + "#{track}, "
+			end
+			tracklist = tracklist[0..tracklist.length-3]
+			tracklist = "Top tracks: #{tracklist}. " if tracklist != ""
+
+			plays     = plays.reverse.gsub(%r{([0-9]{3}(?=([0-9])))}, "\\1,").reverse
+			listeners = listeners.reverse.gsub(%r{([0-9]{3}(?=([0-9])))}, "\\1,").reverse
+
+			reply = "%s (%s plays; %s listeners). %s%sURL: %s" % [artist, plays, listeners, tracklist, taglist, url]
+		rescue
+			reply = "Error"
+		end
+		m.reply "0,4Last.fm #{reply}"
+	end
+
 end

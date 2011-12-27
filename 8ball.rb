@@ -5,6 +5,7 @@ class Eightball
 
 	match /8ball (.+)/
 	def execute (m, s)
+		return unless ignore_nick(m.user.nick).nil?
 
 		eightball = [
 			"It is certain",
@@ -30,7 +31,7 @@ class Eightball
 		]
 
 		begin
-			m.reply "#{m.user.nick}: #{eightball[rand(eightball.length)]}"
+			m.reply " #{eightball[rand(eightball.length)]}". true
 		rescue
 			nil
 		end

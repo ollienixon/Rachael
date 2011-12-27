@@ -5,61 +5,137 @@ Encoding.default_internal = "UTF-8"
 
 require 'rubygems'
 require 'cinch'
+
+# Database stuff
+require 'data_mapper'
+require 'dm-postgres-adapter'
+require 'do_postgres'
+
+# Web stuff
 require 'mechanize'
 require 'uri'
 require 'open-uri'
 require 'nokogiri'
+require 'openssl'
+
 require 'date'
 require 'cgi'
-require 'openssl'
+
+# Encoding issues
 require 'iconv'
 
-#require 'twitter_oauth'
-#require 'yaml'
+# Bitly API interfacing
+require 'bitly'
+
+
+# Global vars
+$BOTNICK = "Rachael"
+$BOTPASSWORD = ""
+$BOTOWNER = "qb" # Make sure this is lowercase
+$BOTURL = "http://sjis.me/help.html"
+$BOTGIT = "https://github.com/ibkshash/Rachael"
+
+# API Keys
+$BINGAPI 		= ""
+$BITLYUSER 		= ""
+$BITLYAPI 		= ""
+$LASTFMAPI 		= ""
+$WOLFRAMAPI 	= ""
+
+
+DataMapper.setup(:default, ENV['DATABASE_URL'] || 'postgres://localhost/mydb')
+
+class LastfmDB 
+	include DataMapper::Resource
+	property(:id, Serial)
+	property(:nick, String, :unique => true)
+	property(:username, String)
+end 
+
+class IgnoreDB
+	include DataMapper::Resource
+	property(:id, Serial)
+	property(:nick, String, :unique => true)
+end 
+
+class PassiveDB
+	include DataMapper::Resource
+	property(:id, Serial)
+	property(:channel, String, :unique => true)
+end 
+
+class JoinDB
+	include DataMapper::Resource
+	property(:id, Serial)
+	property(:channel, String, :unique => true)
+end 
+
+class AdminDB
+	include DataMapper::Resource
+	property(:id, Serial)
+	property(:nick, String, :unique => true)
+end 
+
+DataMapper.finalize
 
 # Ignore list
 def ignore_nick(user)
-  f = File.open("ignore.txt")
-  ignoreNicksArray=[] 
-  f.each_line {|line| ignoreNicksArray.push line.gsub(/[\r\n]/, "") }
-  ignoreNicksArray.include?(user)
+	check = IgnoreDB.first(:nick => user.downcase)
+	if check.nil?
+		return nil
+	else
+		return true
+	end
 end
 
-# Turns off URL Prasing in select channels
-def ignore_channel(channel)
-  f = File.open("ignorec.txt")
-  ignoreChannelsArray=[] 
-  f.each_line {|line| ignoreChannelsArray.push line.gsub(/[\r\n]/, "") }
-  ignoreChannelsArray.include?(channel)
+# Passive on/off
+def disable_passive(channel)
+	check = PassiveDB.first(:channel => channel.downcase)
+	if check.nil?
+		return nil
+	else
+		return true
+	end
+end
+
+# Bot admins
+def check_admin(user)
+	user.refresh
+	@admins = AdminDB.first(:nick => user.authname.downcase)
 end
 
 # Basic plugins
 require_relative './basic.rb'
+require_relative './userset.rb'           # Set options
 
 # ``Advacned'' plugins
 require_relative './urbandictionary.rb'   # UrbanDictionary
 require_relative './weather.rb'           # Weather
-require_relative './lastfm.rb'            # Alias, Lastfm, Compare, NowPlaying
+require_relative './lastfm.rb'            # Lastfm
 require_relative './uri.rb'               # Uri
 require_relative './translate.rb'         # Translate
 require_relative './twitter.rb'           # Twitter
-require_relative './hello.rb'             # Hello
+require_relative './hello.rb'             # Insult
 require_relative './8ball.rb'             # Eightball
 require_relative './rand.rb'              # Pick
-require_relative './tvrage.rb'            # Tvrage
+require_relative './youtube.rb'           # Youtube
+require_relative './bing.rb'              # Bing
+require_relative './answers.rb'           # Answers
 
-#require_relative './tweet.rb'            # Tweet
 
 bot = Cinch::Bot.new do
-  configure do |c|
-    c.plugins.prefix    = /^:/
-    c.server            = "irc.rizon.net"
-    c.nick              = "Rachael"
-    c.realname          = "Rachael"
-    c.user              = "Rachael"
-    c.channels          = []
-    c.plugins.plugins   = [Basic, UrbanDictionary, Weather, Alias, Lastfm, Compare, NowPlaying, Uri, Translate, Twitter, Hello, Eightball, Pick, Tvrage]
-  end
+	configure do |c|
+		c.plugins.prefix    = /^:/
+		c.server            = "irc.rizon.net"
+		c.port              = 6697
+		c.ssl.use           = true
+		c.ssl.verify        = false
+		c.nick              = $BOTNICK
+		c.realname          = "#DEVELOPERS"
+		c.user              = $BOTNICK
+		c.channels          = []
+		c.plugins.plugins   = [Basic, UserSet, UrbanDictionary, Weather, Lastfm, Uri, Translate, Twitter, Insult, Eightball, Pick, Youtube, Bing, Answers]
+	end
 end
 
 bot.start

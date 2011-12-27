@@ -4,119 +4,143 @@ Encoding.default_external = "UTF-8"
 Encoding.default_internal = "UTF-8"
 
 class Uri 
-  include Cinch::Plugin
-  react_on :channel
+	include Cinch::Plugin
+	react_on :channel
 
-  listen_to :channel
-  def listen(m)
-    return unless ignore_nick(m.user.nick) == false and ignore_channel(m.channel) == false
+	listen_to :channel
+	def listen(m)
+		return unless ignore_nick(m.user.nick).nil? and disable_passive(m.channel.name).nil?
 
-    if(@agent.nil?)
-      @agent = Mechanize.new
-      @agent.user_agent_alias = "Windows IE 6"
-      @agent.follow_meta_refresh = true
-    end
+		URI.extract(m.message, ["http", "https"]) do |link|
 
-    URI.extract(m.message, ["http", "https"]) do |link|
+			uri = URI.parse(link)
 
-      uri = URI.parse(link)
+			begin
 
-      begin
-        # Check host
-        case uri.host
-          when "www.youtube.com"
+				if(@agent.nil?)
+					@agent = Mechanize.new
+					@agent.user_agent_alias = "Windows IE 7"
+					@agent.follow_meta_refresh = true
+					@agent.redirect_ok = true
+				end
 
-            yoURL     = URI::split(link)
+				if uri.host == "t.co"
+					final_uri = ''
+					open(link) { |h| final_uri = h.base_uri }
 
-            begin
-              videoId   = yoURL[7]
-              doc      = Nokogiri::XML(open("http://gdata.youtube.com/feeds/api/videos/#{videoId[2..12]}?v=2"))
+					link = final_uri.to_s
+					uri = URI.parse(final_uri.to_s)
+				end
 
-              views     = doc.xpath("//yt:statistics/@viewCount").text
-              length    = doc.xpath("//yt:duration/@seconds").text
-              name      = doc.xpath("//media:title").text
-              rating    = doc.xpath("//gd:rating/@average").text
-              likes     = doc.xpath("//yt:rating/@numLikes").text
-              dislikes  = doc.xpath("//yt:rating/@numDislikes").text
+				begin
+					page = @agent.head link
+				rescue
+					page = @agent.get link
+				end
 
-              views     = views.reverse.gsub(%r{([0-9]{3}(?=([0-9])))}, "\\1,").reverse
-              likes     = likes.reverse.gsub(%r{([0-9]{3}(?=([0-9])))}, "\\1,").reverse
-              dislikes  = dislikes.reverse.gsub(%r{([0-9]{3}(?=([0-9])))}, "\\1,").reverse
+        # Title
+				if page.header['content-type'].include? "html"
 
-              length    = length.to_i
-              rating    = rating[0..2]
+					case uri.host
+					when "boards.4chan.org"
 
-              if length > 3599
-                lengthf = [length/3600, length/60 % 60, length % 60].map{|t| t.to_s.rjust(2,'0')}.join(':')
-              else
-                lengthf = [length/60 % 60, length % 60].map{|t| t.to_s.rjust(2,'0')}.join(':')
-              end
+						doc = @agent.get(link)
+						bang = URI::split(link)
 
-              m.reply "1,0You0,4Tube %s | %s | %s views | Rating: %s (%s|%s)" % [name, lengthf, views, rating, likes, dislikes]
-            rescue
-              page = @agent.get(link)
-              title = page.title.gsub(/\s+/, ' ').strip
-              m.reply "0,3Title %s (%s)" % [title, uri.host] # Generic title
-            end
+						if bang[5].include? "/res/"
 
-          when "boards.4chan.org"
+							op = bang[5].include? bang[8] if bang[8] != nil
+							quote = bang[8].include? "q" if bang[8] != nil
 
-            doc = @agent.get(link)
-            bang = URI::split(link)
+							# Reply
+							if bang[8] != nil and op == false and quote == false 
+								poster    = doc.search("//td[@id=#{bang[8]}]/span[@class='commentpostername']").text
+								trip      = doc.search("//td[@id=#{bang[8]}]/span[@class='postertrip']").text
+								postid    = bang[8]
+								reply     = doc.search("//td[@id=#{bang[8]}]/blockquote").inner_html.gsub("<br>", " ").gsub("<font class=\"unkfunc\">", "3").gsub("</font>", "").gsub(/<\/?[^>]*>/, "").gsub("&gt;", ">")
+								image     = doc.search("//td[@id=#{bang[8]}]/a/@href").text
 
-            if bang[5].include? "/res/"
+								image = "File: #{image} | " if image.length > 1
+								reply = reply[0..160]+" …" if reply.length > 160
 
-              op = bang[5].include? bang[8] if bang[8] != nil
-              quote = bang[8].include? "q" if bang[8] != nil
+								m.reply "3%s%s No.%s | %s%s" % [poster, trip, postid, image, reply]
+							# OP
+							else
+								subject   = doc.search("//span[@class='filetitle']").text
+								poster    = doc.search("//span[@class='postername']").text
+								trip      = doc.search("//form/span[@class='postertrip']").text
+								postid    = doc.search("//form/span/a[@class='quotejs'][2]").text
+								reply     = doc.search("//form/blockquote[1]").inner_html.gsub("<br>", " ").gsub("<font class=\"unkfunc\">", "3").gsub("</font>", "").gsub(/<\/?[^>]*>/, "").gsub("&gt;", ">")
+								image     = doc.search("//form/a[1]/@href").text
+								date      = doc.search("//span[@class='posttime']").text
 
-              if bang[8] != nil and op == false and quote == false # Get reply post info
-                poster    = doc.search("//td[@id=#{bang[8]}]/span[@class='commentpostername']").text
-                trip      = doc.search("//td[@id=#{bang[8]}]/span[@class='postertrip']").text
-                postid    = bang[8]
-                reply     = doc.search("//td[@id=#{bang[8]}]/blockquote").inner_html.gsub("<br>", " ").gsub("<font class=\"unkfunc\">", "3").gsub("</font>", "").gsub(/<\/?[^>]*>/, "").gsub("&gt;", ">")
-                image     = doc.search("//td[@id=#{bang[8]}]/a/@href").text
+								subject = "\"#{subject}\" " if subject.length > 1
+								reply = "| "+reply if reply.length > 1
+								reply = reply[0..160]+" …" if reply.length > 160
 
-                image = "File: #{image} | " if image != ""
-                reply = reply[0..160]+" …" if reply.length > 160
+								#date      = date[-17..-8] # Get the date from the file name
+								#t         = date.to_i
+								#da        = Time.at(t).strftime("%b %d %R")
 
-                m.reply "3%s%s No.%s | %s%s" % [poster, trip, postid, image, reply]
-              else
-                subject   = doc.search("//span[@class='filetitle']").text
-                poster    = doc.search("//span[@class='postername']").text
-                trip      = doc.search("//form/span[@class='postertrip']").text
-                postid    = doc.search("//form/span/a[@class='quotejs'][2]").text
-                reply     = doc.search("//form/blockquote[1]").inner_html.gsub("<br>", " ").gsub("<font class=\"unkfunc\">", "3").gsub("</font>", "").gsub(/<\/?[^>]*>/, "").gsub("&gt;", ">")
-                image     = doc.search("//form/a[1]/@href").text
-                date      = doc.search("//form/a[1]/@href").text
+								m.reply "%s3%s%s %s No.%s | File: %s %s" % [subject, poster, trip, date, postid, image, reply]
+							end
 
-                subject = subject+" " if subject != ""
-                reply = "| "+reply if reply != ""
-                reply = reply[0..160]+" …" if reply.length > 160
+						else # Board Index Title
+							page = @agent.get(link)
 
-                date      = date[-17..-8] # Get the date from the file name
-                t         = date.to_i
-                da        = Time.at(t).strftime("%b %d %R")
+							begin
+								title = page.title.gsub(/\s+/, ' ').strip
+							rescue
+								title = "text/html"
+							end
 
-                m.reply "%s3%s%s (%s) No.%s | File: %s %s" % [subject, poster, trip, da, postid, image, reply]
-              end
+							uri = URI.parse(page.uri.to_s)
+							m.reply "0,3Title %s (%s)" % [title, uri.host]
+						end
 
-            else
-              page = @agent.get(link)
-              title = page.title.gsub(/\s+/, ' ').strip
-              m.reply "0,3Title %s (%s)" % [title, uri.host] # Board index title
-            end
 
-          else
-            page = @agent.get(link)
-            title = page.title.gsub(/\s+/, ' ').strip
-            m.reply "0,3Title %s (%s)" % [title, uri.host] # Generic title
-          end
+					else # Generic Title
+						page = @agent.get(link)
 
-      rescue OpenURI::HTTPError
-        m.reply "0,3Title 404 Page Not Found"
-      rescue
-        nil
-      end
-    end
-  end
+						begin
+							title = page.title.gsub(/\s+/, ' ').strip
+						rescue
+							title = "text/html"
+						end
+
+						uri = URI.parse(page.uri.to_s)
+						m.reply "0,3Title %s (%s)" % [title, uri.host]
+					end
+
+				# File
+				else
+					fileSize = page.header['content-length'].to_i
+
+					case fileSize
+						when 0..1024 then size = (fileSize.round(1)).to_s + " B"
+						when 1025..1048576 then size = ((fileSize/1024.0).round(1)).to_s + " KB"
+						when 1048577..1073741824 then size = ((fileSize/1024.0/1024.0).round(1)).to_s + " MB"
+						else size = ((fileSize/1024.0/1024.0/1024.0).round(1)).to_s + " GB"
+					end
+
+					filename = ''
+
+					if page.header['content-disposition']
+						filename = page.header['content-disposition'].gsub("inline;", "").gsub("filename=", "").gsub(/\s+/, ' ') + " "
+					end
+
+					type = page.header['content-type']
+
+					uri = URI.parse(page.uri.to_s)
+
+					m.reply "0,3File %s%s %s (%s)" % [filename, type, size, uri.host]
+				end
+
+			rescue Mechanize::ResponseCodeError => ex
+				m.reply "0,3Title #{ex.response_code} Error" 
+			rescue
+				nil
+			end
+		end
+	end
 end
