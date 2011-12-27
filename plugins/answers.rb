@@ -11,7 +11,7 @@ class Answers
 
 			@bitly = Bitly.new($BITLYUSER, $BITLYAPI)
 			 
-			@url = open("http://api.wolframalpha.com/v2/query?appid=#{$WOLFRAMAPI}&input=#{URI.escape(query)}")
+			@url = open("http://api.wolframalpha.com/v2/query?appid=#{$WOLFRAMAPI[rand($WOLFRAMAPI.length)]}&input=#{URI.escape(query)}")
 			@url = Nokogiri::XML(@url)
 
 			input     = @url.xpath("//pod[@id='Input']/subpod/plaintext").text.gsub(/\s+/, ' ')
@@ -19,11 +19,18 @@ class Answers
 
 			input  = input[0..140]+"..."  if input.length > 140
 			output = output[0..140]+"..." if output.length > 140
-			output = "┐('～`；)┌ ..." if output.length < 1
+
+			if output.length < 1 and input.length > 1
+				reply = input + " => Can not render answer. Check link"
+			elsif output.length < 1 and input.length < 1
+				reply = "Fucked if I know"
+			else
+				reply = input + " => " + output
+			end
 
 			more  = @bitly.shorten("http://www.wolframalpha.com/input/?i=#{URI.escape(query)}")
 
-			m.reply "7Wolfram %s => %s | More info: %s" % [input, output, more.shorten]
+			m.reply "7Wolfram %s | More info: %s" % [reply, more.shorten]
 		rescue
 			m.reply "7Wolfram Error"
 		end
