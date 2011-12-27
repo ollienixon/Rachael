@@ -36,11 +36,11 @@ $BOTURL = "http://sjis.me/help.html"
 $BOTGIT = "https://github.com/ibkshash/Rachael"
 
 # API Keys
-$BINGAPI 		= ""
-$BITLYUSER 		= ""
-$BITLYAPI 		= ""
-$LASTFMAPI 		= ""
-$WOLFRAMAPI 	= ""
+$BINGAPI       = ""
+$BITLYUSER     = ""
+$BITLYAPI      = ""
+$LASTFMAPI     = ""
+$WOLFRAMAPI    = ""
 
 
 DataMapper.setup(:default, ENV['DATABASE_URL'] || 'postgres://localhost/mydb')
@@ -105,22 +105,22 @@ def check_admin(user)
 end
 
 # Basic plugins
-require_relative './basic.rb'
-require_relative './userset.rb'           # Set options
+require_relative './plugins/basic.rb'
+require_relative './plugins/userset.rb'           # Set options
 
 # ``Advacned'' plugins
-require_relative './urbandictionary.rb'   # UrbanDictionary
-require_relative './weather.rb'           # Weather
-require_relative './lastfm.rb'            # Lastfm
-require_relative './uri.rb'               # Uri
-require_relative './translate.rb'         # Translate
-require_relative './twitter.rb'           # Twitter
-require_relative './hello.rb'             # Insult
-require_relative './8ball.rb'             # Eightball
-require_relative './rand.rb'              # Pick
-require_relative './youtube.rb'           # Youtube
-require_relative './bing.rb'              # Bing
-require_relative './answers.rb'           # Answers
+require_relative './plugins/urbandictionary.rb'   # UrbanDictionary
+require_relative './plugins/weather.rb'           # Weather
+require_relative './plugins/lastfm.rb'            # Lastfm
+require_relative './plugins/uri.rb'               # Uri
+require_relative './plugins/translate.rb'         # Translate
+require_relative './plugins/twitter.rb'           # Twitter
+require_relative './plugins/hello.rb'             # Insult
+require_relative './plugins/8ball.rb'             # Eightball
+require_relative './plugins/rand.rb'              # Pick
+require_relative './plugins/youtube.rb'           # Youtube
+require_relative './plugins/bing.rb'              # Bing
+require_relative './plugins/answers.rb'           # Answers
 
 
 bot = Cinch::Bot.new do
