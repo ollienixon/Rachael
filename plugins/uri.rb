@@ -38,7 +38,7 @@ class Uri
 					page = @agent.get link
 				end
 
-        # Title
+				# Title
 				if page.header['content-type'].include? "html"
 
 					case uri.host

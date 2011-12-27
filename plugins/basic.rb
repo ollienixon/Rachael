@@ -29,30 +29,6 @@ class Basic
 		Channel(m.channel.name).join(m.channel.key)
 	end
 
-	match /nick (.+)/, method: :nick
-	def nick(m, name)
-		return unless check_admin(m.user)
-		@bot.nick = name
-	end
-
-	match /quit(?: (.+))?/, method: :quit
-	def quit(m, msg)
-		return unless check_admin(m.user)
-		bot.quit(msg)
-	end
-
-	match /msg (.+?) (.+)/, method: :message
-	def message(m, who, text)
-		return unless check_admin(m.user)
-		User(who).send text
-	end
-
-	match /chan (.+?) (.+)/, method: :message_channel
-	def message_channel(m, chan, text)
-		return unless check_admin(m.user)
-		Channel(chan).send text
-	end
-
 	match /help/, method: :help
 	def help(m)
 		m.reply $BOTURL, true

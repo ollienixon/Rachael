@@ -106,9 +106,10 @@ end
 
 # Basic plugins
 require_relative './plugins/basic.rb'
-require_relative './plugins/userset.rb'           # Set options
+require_relative './plugins/admin.rb'             # Admin
 
 # ``Advacned'' plugins
+require_relative './plugins/userset.rb'           # Set options
 require_relative './plugins/urbandictionary.rb'   # UrbanDictionary
 require_relative './plugins/weather.rb'           # Weather
 require_relative './plugins/lastfm.rb'            # Lastfm
@@ -134,7 +135,7 @@ bot = Cinch::Bot.new do
 		c.realname          = "#DEVELOPERS"
 		c.user              = $BOTNICK
 		c.channels          = []
-		c.plugins.plugins   = [Basic, UserSet, UrbanDictionary, Weather, Lastfm, Uri, Translate, Twitter, Insult, Eightball, Pick, Youtube, Bing, Answers]
+		c.plugins.plugins   = [Basic, Admin, UserSet, UrbanDictionary, Weather, Lastfm, Uri, Translate, Twitter, Insult, Eightball, Pick, Youtube, Bing, Answers]
 	end
 end
 
