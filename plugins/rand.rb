@@ -9,7 +9,7 @@ class Pick
 
 		begin
 			options = query.split(/\|/)
-			m.reply "#{m.user.nick}: #{options[rand(options.length)]}"
+			m.reply options[rand(options.length)], true
 		rescue
 			nil
 		end

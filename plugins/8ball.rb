@@ -31,7 +31,7 @@ class Eightball
 		]
 
 		begin
-			m.reply " #{eightball[rand(eightball.length)]}". true
+			m.reply eightball[rand(eightball.length)], true
 		rescue
 			nil
 		end
