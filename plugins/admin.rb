@@ -112,6 +112,7 @@ class Admin
 	end 
 
 
+
   # Make/Remove admins
 
 	match /add admin (.+)/, method: :add_admin
@@ -171,6 +172,7 @@ class Admin
 	end
 
 
+
   # URI ON/OFF
 
 	match /passive on(?: (.+))?/, method: :passive_on
@@ -207,6 +209,7 @@ class Admin
 			raise
 		end
 	end
+
 
 
   # Join/Part channels
@@ -267,6 +270,7 @@ class Admin
 			raise
 		end
 	end 
+
 
 
 	# Last.fm 
