@@ -88,13 +88,21 @@ DataMapper.finalize
 # Ignore list
 def ignore_nick(user)
 	check = IgnoreDB.first(:nick => user.downcase)
-	check.nil? ? return nil : return true
+	if check.nil? 
+		return nil
+	else
+		return true
+	end
 end
 
 # Passive on/off
 def disable_passive(channel)
 	check = PassiveDB.first(:channel => channel.downcase)
-	check.nil? ? return nil : return true
+	if check.nil? 
+		return nil
+	else
+		return true
+	end
 end
 
 # Bot admins

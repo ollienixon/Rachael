@@ -23,9 +23,7 @@ class Weather
 	end 
 
 
-	match /w(?:e(?:ather)?)?(?: (.+))?/, method: :weather
-	match /f(?:o(?:recast)?)?(?: (.+))?/, method: :forecast
-
+	match /w(?:e(?:ather)?)?(?: (.+))?$/, method: :weather
 	def weather(m, loc = nil)
 		return unless ignore_nick(m.user.nick).nil?
 
@@ -56,6 +54,7 @@ class Weather
 		m.reply "0,2Weather #{text}"
 	end
 
+	match /f(?:o(?:recast)?)?(?: (.+))?$/, method: :forecast
 	def forecast(m, loc = nil)
 		return unless ignore_nick(m.user.nick).nil?
 

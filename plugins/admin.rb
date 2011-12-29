@@ -3,7 +3,7 @@
 class Admin
 	include Cinch::Plugin
 
-	prefix lambda{ |m| /#{m.bot.nick}:\s/i }
+	prefix lambda{ |m| /^#{m.bot.nick}:\s/i }
 
 
 	match /nick (.+)/, method: :nick
@@ -16,6 +16,7 @@ class Admin
 	match /quit(?: (.+))?/, method: :quit
 	def quit(m, msg)
 		return unless check_admin(m.user)
+		msg ||= "brb"
 		bot.quit(msg)
 	end
 
@@ -27,14 +28,14 @@ class Admin
 	end
 
 
-	match /say (.+) (.+)/, method: :message_channel
+	match /say (.+?) (.+)/, method: :message_channel
 	def message_channel(m, chan, text)
 		return unless check_admin(m.user)
 		Channel(chan).send text
 	end
 
 
-	match /kick (.+)(?: (.+))?/, method: :kick
+	match /kick (\S+)(:? (.+))?/, method: :kick
 	def kick(m, nick, reason)
 		return unless check_admin(m.user)
 		reason ||= "Get out"
@@ -42,10 +43,10 @@ class Admin
 	end
 
 
-	match /ban (.+)(?: (.+))?/, method: :ban
+	match /ban (\S+)(:? (.+))?/, method: :ban
 	def ban(m, nick, reason)
 		return unless check_admin(m.user)
-		reason ||= "USER WAS BANNED FOR THIS POST"
+		reason ||= "Get out"
 		baddie = User(nick);
 		m.channel.ban(baddie.mask("*!*@%h"));
 		m.channel.kick(nick, reason)
@@ -71,7 +72,7 @@ class Admin
 			m.reply "Oops something went wrong", true
 			raise
 		end
-	end 
+	end
 
 	match /unignore (.+)/, method: :unignore
 	def unignore(m, username)
@@ -109,7 +110,7 @@ class Admin
 			m.reply "Oops something went wrong", true
 			raise
 		end
-	end 
+	end
 
 
 
@@ -131,7 +132,7 @@ class Admin
 			m.reply "Oops something went wrong", true
 			raise
 		end
-	end 
+	end
 
 	match /remove admin (.+)/, method: :del_admin
 	def del_admin(m, username)
@@ -178,7 +179,7 @@ class Admin
 	match /passive on(?: (.+))?/, method: :passive_on
 	def passive_on(m, channel)
 		return unless check_admin(m.user)
-		channel ||= m.channel
+		channel ||= m.channel.to_s
 
 		begin
 			old = PassiveDB.first(:channel => channel.downcase)
@@ -194,7 +195,7 @@ class Admin
 	match /passive off(?: (.+))?/, method: :passive_off
 	def passive_off(m, channel)
 		return unless check_admin(m.user)
-		channel ||= m.channel
+		channel ||= m.channel.to_s
 
 		begin
 			old = PassiveDB.first(:channel => channel.downcase)
@@ -235,7 +236,7 @@ class Admin
 	match /part(?: (.+))?/, method: :part
 	def part(m, channel)
 		return unless check_admin(m.user)
-		channel ||= m.channel
+		channel ||= m.channel.to_s
 
 		begin
 			old = JoinDB.first(:channel => channel.downcase)
@@ -303,6 +304,47 @@ class Admin
 		return unless check_admin(m.user)
 		begin
 			old = LastfmDB.first(:id => number.to_i)
+			old.destroy! unless old.nil?
+
+			m.reply "Done", true
+		rescue
+			m.reply "Oops something went wrong", true
+			raise
+		end
+	end
+
+
+
+	# Locations 
+
+	match /list locations/, method: :list_locations
+	def list_locations(m)
+		return unless check_admin(m.user)
+		begin
+			agent = Mechanize.new
+			rows = ""
+
+			LocationDB.all.each do |item|
+				rows = rows + item.id.to_s + ". " + item.nick + " = " + item.location + "\n"
+			end
+
+			page = agent.get "http://p.sjis.me/"
+			form = page.forms.first
+			form.content = rows
+			page = agent.submit form
+
+			m.reply page.search("//a[@name='plain']/@href").text, true
+		rescue
+			m.reply "Oops something went wrong", true
+			raise
+		end
+	end 
+
+	match /remove location (\d+)/, method: :del_location
+	def del_location(m, number)
+		return unless check_admin(m.user)
+		begin
+			old = LocationDB.first(:id => number.to_i)
 			old.destroy! unless old.nil?
 
 			m.reply "Done", true
