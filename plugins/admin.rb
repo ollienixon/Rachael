@@ -34,20 +34,23 @@ class Admin
 	end
 
 
-	match /kick (.+)/, method: :kick
-	def kick(m, nick)
+	match /kick (.+)(?: (.+))?/, method: :kick
+	def kick(m, nick, reason)
 		return unless check_admin(m.user)
-		m.channel.kick(nick, "Get out.")
+		reason ||= "Get out"
+		m.channel.kick(nick, reason)
 	end
 
 
-	match /ban (.+)/, method: :ban
-	def ban(m, nick)
+	match /ban (.+)(?: (.+))?/, method: :ban
+	def ban(m, nick, reason)
 		return unless check_admin(m.user)
+		reason ||= "USER WAS BANNED FOR THIS POST"
 		baddie = User(nick);
 		m.channel.ban(baddie.mask("*!*@%h"));
-		m.channel.kick(nick, "USER WAS BANNED FOR THIS POST")
+		m.channel.kick(nick, reason)
 	end
+
 
 
   # Ignore users

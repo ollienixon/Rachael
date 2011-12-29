@@ -31,7 +31,7 @@ class Basic
 
 	match /help/, method: :help
 	def help(m)
-		m.reply $BOTURL, true
+		m.reply "Function list: 12#{$BOTURL} Source: 12#{$BOTGIT}", true
 	end
 
 end

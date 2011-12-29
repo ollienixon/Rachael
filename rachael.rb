@@ -29,21 +29,21 @@ require 'bitly'
 
 
 # Global vars
-$BOTNICK       = ""
-$BOTPASSWORD   = ""
+$BOTNICK       = "" # Bot nick
+$BOTPASSWORD   = "" # Nickserv password
 $BOTOWNER      = "" # Make sure this is lowercase
-$BOTURL        = ""
+$BOTURL        = "" # Help page
 $BOTGIT        = "https://github.com/ibkshash/Rachael"
 
 # API Keys
-$BINGAPI       = ""
-$BITLYUSER     = ""
-$BITLYAPI      = ""
-$LASTFMAPI     = ""
-$WOLFRAMAPI    = ""
+$BINGAPI       = "" # For bing search and Translate plugins
+$BITLYUSER     = "" # bitly username | Many plugins use this
+$BITLYAPI      = "" # bitly api key  |
+$LASTFMAPI     = "" # For all last.fm functions
+$WOLFRAMAPI    = "" # For Answers
 
 
-DataMapper.setup(:default, ENV['DATABASE_URL'] || 'postgres://localhost/mydb')
+DataMapper.setup(:default, ENV['DATABASE_URL'] || 'postgres://localhost/mydb') # This is what Heroku uses
 
 class LastfmDB 
 	include DataMapper::Resource
@@ -110,11 +110,12 @@ def check_admin(user)
 	@admins = AdminDB.first(:nick => user.authname.downcase)
 end
 
+
 # Basic plugins
 require_relative './plugins/basic.rb'
 require_relative './plugins/admin.rb'             # Admin
 
-# ``Advacned'' plugins
+# Advacned plugins
 require_relative './plugins/userset.rb'           # Set options
 require_relative './plugins/urbandictionary.rb'   # UrbanDictionary
 require_relative './plugins/weather.rb'           # Weather
