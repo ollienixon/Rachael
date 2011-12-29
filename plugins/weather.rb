@@ -6,14 +6,34 @@ Encoding.default_internal = "UTF-8"
 class Weather
 	include Cinch::Plugin
 
-	match /w(?:e(?:ather)?)? (.+)/, method: :weather
-	match /f(?:o(?:recast)?)? (.+)/, method: :forecast
+	# Check the DB for stored locations
 
-	def weather(m, loc)
+	def get_location(m, param) 
+		if param == '' || param.nil?
+			location = LocationDB.first(:nick => m.user.nick.downcase)
+			if location.nil?
+				m.reply "location not provided nor on file."
+				return nil
+			else
+				return location.location
+			end
+		else
+			return param.strip
+		end
+	end 
+
+
+	match /w(?:e(?:ather)?)?(?: (.+))?/, method: :weather
+	match /f(?:o(?:recast)?)?(?: (.+))?/, method: :forecast
+
+	def weather(m, loc = nil)
 		return unless ignore_nick(m.user.nick).nil?
 
+		location = get_location(m, loc)
+		return if location.nil?
+
 		begin
-			argument = URI.escape(loc)
+			argument = URI.escape(location)
 			url = Nokogiri::XML(open("http://www.google.com/ig/api?weather=#{argument}").read)
 			url.encoding = 'utf-8'
 
@@ -36,11 +56,14 @@ class Weather
 		m.reply "0,2Weather #{text}"
 	end
 
-	def forecast(m, loc)
+	def forecast(m, loc = nil)
 		return unless ignore_nick(m.user.nick).nil?
 
+		location = get_location(m, loc)
+		return if location.nil?
+
 		begin
-			argument = URI.escape(loc)
+			argument = URI.escape(location)
 			url = Nokogiri::XML(open("http://www.google.com/ig/api?weather=#{argument}").read)
 			url.encoding = 'utf-8'
 

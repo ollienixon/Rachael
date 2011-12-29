@@ -29,11 +29,11 @@ require 'bitly'
 
 
 # Global vars
-$BOTNICK = "Rachael"
-$BOTPASSWORD = ""
-$BOTOWNER = "qb" # Make sure this is lowercase
-$BOTURL = "http://sjis.me/help.html"
-$BOTGIT = "https://github.com/ibkshash/Rachael"
+$BOTNICK       = ""
+$BOTPASSWORD   = ""
+$BOTOWNER      = "" # Make sure this is lowercase
+$BOTURL        = ""
+$BOTGIT        = "https://github.com/ibkshash/Rachael"
 
 # API Keys
 $BINGAPI       = ""
@@ -74,6 +74,12 @@ class AdminDB
 	include DataMapper::Resource
 	property(:id, Serial)
 	property(:nick, String, :unique => true)
+end 
+
+class InsultDB 
+	include DataMapper::Resource
+	property(:id, Serial)
+	property(:insult, Text)
 end 
 
 DataMapper.finalize
@@ -127,14 +133,14 @@ require_relative './plugins/answers.rb'           # Answers
 bot = Cinch::Bot.new do
 	configure do |c|
 		c.plugins.prefix    = /^:/
-		c.server            = "irc.rizon.net"
+		c.server            = ""
 		c.port              = 6697
 		c.ssl.use           = true
 		c.ssl.verify        = false
 		c.nick              = $BOTNICK
-		c.realname          = "#DEVELOPERS"
+		c.realname          = $BOTNICK
 		c.user              = $BOTNICK
-		c.channels          = []
+		c.channels          = [] # Leave this empty
 		c.plugins.plugins   = [Basic, Admin, UserSet, UrbanDictionary, Weather, Lastfm, Uri, Translate, Twitter, Insult, Eightball, Pick, Youtube, Bing, Answers]
 	end
 end

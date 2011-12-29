@@ -11,7 +11,7 @@ class Answers
 
 			@bitly = Bitly.new($BITLYUSER, $BITLYAPI)
 			 
-			@url = open("http://api.wolframalpha.com/v2/query?appid=#{$WOLFRAMAPI[rand($WOLFRAMAPI.length)]}&input=#{URI.escape(query)}")
+			@url = open("http://api.wolframalpha.com/v2/query?appid=#{$WOLFRAMAPI[rand($WOLFRAMAPI.length)]}&input=#{CGI.escape(query)}")
 			@url = Nokogiri::XML(@url)
 
 			input     = @url.xpath("//pod[@id='Input']/subpod/plaintext").text.gsub(/\s+/, ' ')
@@ -28,7 +28,7 @@ class Answers
 				reply = input + " => " + output
 			end
 
-			more  = @bitly.shorten("http://www.wolframalpha.com/input/?i=#{URI.escape(query)}")
+			more  = @bitly.shorten("http://www.wolframalpha.com/input/?i=#{CGI.escape(query)}")
 
 			m.reply "7Wolfram %s | More info: %s" % [reply, more.shorten]
 		rescue

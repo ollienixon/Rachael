@@ -1,9 +1,9 @@
 # encoding: utf-8
 
 class Admin
-  include Cinch::Plugin
+	include Cinch::Plugin
 
-	prefix lambda{ |m| m.bot.nick + ": " }
+	prefix lambda{ |m| /#{m.bot.nick}:\s/i }
 
 
 	match /nick (.+)/, method: :nick
@@ -27,11 +27,12 @@ class Admin
 	end
 
 
-	match /say (.+?) (.+)/, method: :message_channel
+	match /say (.+) (.+)/, method: :message_channel
 	def message_channel(m, chan, text)
 		return unless check_admin(m.user)
 		Channel(chan).send text
 	end
+
 
 	match /kick (.+)/, method: :kick
 	def kick(m, nick)
@@ -39,19 +40,20 @@ class Admin
 		m.channel.kick(nick, "Get out.")
 	end
 
-	match /kickban (.+)/, method: :kickban
-	def kickban(m, nick)
+
+	match /ban (.+)/, method: :ban
+	def ban(m, nick)
 		return unless check_admin(m.user)
 		baddie = User(nick);
 		m.channel.ban(baddie.mask("*!*@%h"));
-		m.channel.kick(nick, "4(USER WAS BEHEADED FOR THIS POST)")
+		m.channel.kick(nick, "USER WAS BANNED FOR THIS POST")
 	end
 
 
   # Ignore users
 
-	match /ignore (.+)/, method: :set_ignore
-	def set_ignore(m, username)
+	match /ignore (.+)/, method: :ignore
+	def ignore(m, username)
 		return unless check_admin(m.user)
 
 		begin
@@ -68,8 +70,8 @@ class Admin
 		end
 	end 
 
-	match /unignore (.+)/, method: :set_unignore
-	def set_unignore(m, username)
+	match /unignore (.+)/, method: :unignore
+	def unignore(m, username)
 		return unless check_admin(m.user)
 
 		begin
@@ -109,8 +111,8 @@ class Admin
 
   # Make/Remove admins
 
-	match /add admin (.+)/, method: :set_admin
-	def set_admin(m, username)
+	match /add admin (.+)/, method: :add_admin
+	def add_admin(m, username)
 		return unless check_admin(m.user)
 
 		begin
@@ -127,8 +129,8 @@ class Admin
 		end
 	end 
 
-	match /remove admin (.+)/, method: :set_del_admin
-	def set_deladmin(m, username)
+	match /remove admin (.+)/, method: :del_admin
+	def del_admin(m, username)
 		return unless check_admin(m.user) and m.user.nick.downcase == $OWNER
 
 		begin
@@ -168,8 +170,8 @@ class Admin
 
   # URI ON/OFF
 
-	match /passive on(?: (.+))?/, method: :set_passive_on
-	def set_passive_on(m, channel)
+	match /passive on(?: (.+))?/, method: :passive_on
+	def passive_on(m, channel)
 		return unless check_admin(m.user)
 		channel ||= m.channel
 
@@ -184,8 +186,8 @@ class Admin
 		end
 	end
 
-	match /passive off(?: (.+))?/, method: :set_passive_off
-	def set_passive_off(m, channel)
+	match /passive off(?: (.+))?/, method: :passive_off
+	def passive_off(m, channel)
 		return unless check_admin(m.user)
 		channel ||= m.channel
 
@@ -202,7 +204,6 @@ class Admin
 			raise
 		end
 	end
-
 
 
   # Join/Part channels
@@ -290,7 +291,7 @@ class Admin
 		end
 	end 
 
-	match /del lastfm (\d+)/, method: :del_lastfm
+	match /remove lastfm (\d+)/, method: :del_lastfm
 	def del_lastfm(m, number)
 		return unless check_admin(m.user)
 		begin
@@ -304,5 +305,60 @@ class Admin
 		end
 	end
 
+
+
+	# Insults
+
+	match /add insult (.+)/, method: :add_insult
+	def add_insult(m, text)
+		return unless check_admin(m.user)
+
+		begin
+			new = InsultDB.new(:insult => text)
+			new.save
+
+			m.reply "Added"
+		rescue
+			m.reply "Oops something went wrong", true
+			raise
+		end
+	end 
+
+	match /remove insult (\d+)/, method: :del_insult
+	def del_insult(m, number)
+		return unless check_admin(m.user)
+		begin
+			old = InsultDB.first(:id => number.to_i)
+			old.destroy! unless old.nil?
+
+			m.reply "Done", true
+		rescue
+			m.reply "Oops something went wrong", true
+			raise
+		end
+	end
+
+	match /list insults/, method: :list_insults
+	def list_insults(m)
+		return unless check_admin(m.user)
+		begin
+			agent = Mechanize.new
+			rows = ""
+
+			InsultDB.all.each do |item|
+				rows = rows + item.id.to_s + ". " + item.insult + "\n"
+			end
+
+			page = agent.get "http://p.sjis.me/"
+			form = page.forms.first
+			form.content = rows
+			page = agent.submit form
+
+			m.reply page.search("//a[@name='plain']/@href").text, true
+		rescue
+			m.reply "Oops something went wrong", true
+			raise
+		end
+	end 
 
 end

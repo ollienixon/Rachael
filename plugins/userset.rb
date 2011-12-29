@@ -26,4 +26,27 @@ class UserSet
 		end
 	end 
 
+
+	# Weather location
+
+	match /set location (.+)/, method: :set_location
+	def set_location(m, areacode)
+		return unless ignore_nick(m.user.nick).nil?
+		begin
+			old = LocationDB.first(:nick => m.user.nick.downcase)
+			old.destroy! unless old.nil?
+
+			new = LocationDB.new(
+				:nick => m.user.nick.downcase,
+				:location => areacode.downcase
+			)
+			new.save
+
+			m.reply "location updated to: #{areacode}", true
+		rescue
+			m.reply "Oops something went wrong", true
+			raise
+		end
+	end 
+
 end
