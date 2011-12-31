@@ -3,7 +3,7 @@
 class UrbanDictionary
 	include Cinch::Plugin
 
-	match /u(?:r(?:ban)?)? (?:([1-7]{1}) )?(.+)/, method: :urban
+	match /u(?:r(?:ban)?)? (?:([1-7]{1}) )?(.+)/i, method: :urban
 
 	def urban(m, number, word)
 		return unless ignore_nick(m.user.nick).nil?

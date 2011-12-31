@@ -3,7 +3,7 @@
 class Translate
 	include Cinch::Plugin
 
-	match /t(?:r(?:anslate)?)? ([a-zA-Z-]{2,6}) ([a-zA-Z-]{2,6}) (.*)/u
+	match /t(?:r(?:anslate)?)? ([a-zA-Z-]{2,6}) ([a-zA-Z-]{2,6}) (.*)/iu
 
 	def execute(m, from, to, message)
 		return unless ignore_nick(m.user.nick).nil?

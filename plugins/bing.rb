@@ -3,8 +3,8 @@
 class Bing
 	include Cinch::Plugin
 
-	match /b(?:ing)? (.+)/
-	match /g (.+)/
+	match /b(?:ing)? (.+)/i
+	match /g (.+)/i
 
 	def execute(m, query)
 		return unless ignore_nick(m.user.nick).nil?

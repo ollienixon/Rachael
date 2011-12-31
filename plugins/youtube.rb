@@ -3,16 +3,18 @@
 class Youtube
 	include Cinch::Plugin
 
-	match /y(?:outube)? (.+)/
-	match /yt (.+)/
+	match /y(?:outube)? (.+)/i
+	match /yt (.+)/i
 
 	def length_in_minutes(seconds)
 		return nil if seconds < 0
 
 		if seconds > 3599
 			length = [seconds/3600, seconds/60 % 60, seconds % 60].map{|t| t.to_s.rjust(2,'0')}.join(':')
-		else
+		elsif seconds > 59
 			length = [seconds/60 % 60, seconds % 60].join('m')+"s"
+		else
+			length = length+"s"
 		end
 	end
 

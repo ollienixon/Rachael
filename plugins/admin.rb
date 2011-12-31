@@ -3,17 +3,17 @@
 class Admin
 	include Cinch::Plugin
 
-	prefix lambda{ |m| /^#{m.bot.nick}:\s/i }
+	prefix lambda{ |m| /^#{m.bot.nick},?:?\s/i }
 
 
-	match /nick (.+)/, method: :nick
+	match /nick (.+)/i, method: :nick
 	def nick(m, name)
 		return unless check_admin(m.user)
 		@bot.nick = name
 	end
 
 
-	match /quit(?: (.+))?/, method: :quit
+	match /quit(?: (.+))?/i, method: :quit
 	def quit(m, msg)
 		return unless check_admin(m.user)
 		msg ||= "brb"
@@ -21,21 +21,21 @@ class Admin
 	end
 
 
-	match /msg (.+?) (.+)/, method: :message
+	match /msg (.+?) (.+)/i, method: :message
 	def message(m, who, text)
 		return unless check_admin(m.user)
 		User(who).send text
 	end
 
 
-	match /say (.+?) (.+)/, method: :message_channel
+	match /say (.+?) (.+)/i, method: :message_channel
 	def message_channel(m, chan, text)
 		return unless check_admin(m.user)
 		Channel(chan).send text
 	end
 
 
-	match /kick (\S+)(:? (.+))?/, method: :kick
+	match /kick (\S+)(:? (.+))?/i, method: :kick
 	def kick(m, nick, reason)
 		return unless check_admin(m.user)
 		reason ||= "Get out"
@@ -43,7 +43,7 @@ class Admin
 	end
 
 
-	match /ban (\S+)(:? (.+))?/, method: :ban
+	match /ban (\S+)(:? (.+))?/i, method: :ban
 	def ban(m, nick, reason)
 		return unless check_admin(m.user)
 		reason ||= "Get out"
@@ -56,7 +56,7 @@ class Admin
 
   # Ignore users
 
-	match /ignore (.+)/, method: :ignore
+	match /ignore (.+)/i, method: :ignore
 	def ignore(m, username)
 		return unless check_admin(m.user)
 
@@ -74,7 +74,7 @@ class Admin
 		end
 	end
 
-	match /unignore (.+)/, method: :unignore
+	match /unignore (.+)/i, method: :unignore
 	def unignore(m, username)
 		return unless check_admin(m.user)
 
@@ -89,7 +89,7 @@ class Admin
 		end
 	end
 
-	match /list ignores/, method: :list_ignores
+	match /list ignores/i, method: :list_ignores
 	def list_ignores(m)
 		return unless check_admin(m.user)
 		begin
@@ -116,7 +116,7 @@ class Admin
 
   # Make/Remove admins
 
-	match /add admin (.+)/, method: :add_admin
+	match /add admin (.+)/i, method: :add_admin
 	def add_admin(m, username)
 		return unless check_admin(m.user)
 
@@ -134,7 +134,7 @@ class Admin
 		end
 	end
 
-	match /remove admin (.+)/, method: :del_admin
+	match /remove admin (.+)/i, method: :del_admin
 	def del_admin(m, username)
 		return unless check_admin(m.user) and m.user.nick.downcase == $OWNER
 
@@ -149,7 +149,7 @@ class Admin
 		end
 	end
 
-	match /list admins/, method: :list_admins
+	match /list admins/i, method: :list_admins
 	def list_admins(m)
 		return unless check_admin(m.user)
 		begin
@@ -176,7 +176,7 @@ class Admin
 
   # URI ON/OFF
 
-	match /passive on(?: (.+))?/, method: :passive_on
+	match /passive on(?: (.+))?/i, method: :passive_on
 	def passive_on(m, channel)
 		return unless check_admin(m.user)
 		channel ||= m.channel.to_s
@@ -192,7 +192,7 @@ class Admin
 		end
 	end
 
-	match /passive off(?: (.+))?/, method: :passive_off
+	match /passive off(?: (.+))?/i, method: :passive_off
 	def passive_off(m, channel)
 		return unless check_admin(m.user)
 		channel ||= m.channel.to_s
@@ -215,7 +215,7 @@ class Admin
 
   # Join/Part channels
 
-	match /join (.+)/, method: :join
+	match /join (.+)/i, method: :join
 	def join(m, channel)
 		return unless check_admin(m.user)
 
@@ -233,7 +233,7 @@ class Admin
 		end
 	end
 
-	match /part(?: (.+))?/, method: :part
+	match /part(?: (.+))?/i, method: :part
 	def part(m, channel)
 		return unless check_admin(m.user)
 		channel ||= m.channel.to_s
@@ -249,7 +249,7 @@ class Admin
 		end
 	end
 
-	match /list channels/, method: :list_channels
+	match /list channels/i, method: :list_channels
 	def list_channels(m)
 		return unless check_admin(m.user)
 		begin
@@ -276,7 +276,7 @@ class Admin
 
 	# Last.fm 
 
-	match /list lastfm/, method: :list_lastfm
+	match /list lastfm/i, method: :list_lastfm
 	def list_lastfm(m)
 		return unless check_admin(m.user)
 		begin
@@ -299,7 +299,7 @@ class Admin
 		end
 	end 
 
-	match /remove lastfm (\d+)/, method: :del_lastfm
+	match /remove lastfm (\d+)/i, method: :del_lastfm
 	def del_lastfm(m, number)
 		return unless check_admin(m.user)
 		begin
@@ -317,7 +317,7 @@ class Admin
 
 	# Locations 
 
-	match /list locations/, method: :list_locations
+	match /list locations/i, method: :list_locations
 	def list_locations(m)
 		return unless check_admin(m.user)
 		begin
@@ -340,7 +340,7 @@ class Admin
 		end
 	end 
 
-	match /remove location (\d+)/, method: :del_location
+	match /remove location (\d+)/i, method: :del_location
 	def del_location(m, number)
 		return unless check_admin(m.user)
 		begin
@@ -358,7 +358,7 @@ class Admin
 
 	# Insults
 
-	match /add insult (.+)/, method: :add_insult
+	match /add insult (.+)/i, method: :add_insult
 	def add_insult(m, text)
 		return unless check_admin(m.user)
 
@@ -373,7 +373,7 @@ class Admin
 		end
 	end 
 
-	match /remove insult (\d+)/, method: :del_insult
+	match /remove insult (\d+)/i, method: :del_insult
 	def del_insult(m, number)
 		return unless check_admin(m.user)
 		begin
@@ -387,7 +387,7 @@ class Admin
 		end
 	end
 
-	match /list insults/, method: :list_insults
+	match /list insults/i, method: :list_insults
 	def list_insults(m)
 		return unless check_admin(m.user)
 		begin

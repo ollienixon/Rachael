@@ -3,7 +3,7 @@
 class Insult
 	include Cinch::Plugin
 
-	match /insult(?: (.+))?/
+	match /insult(?: (.+))?/i
 
 	def execute(m, faggot)
 		return unless ignore_nick(m.user.nick).nil?

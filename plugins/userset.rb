@@ -6,7 +6,7 @@ class UserSet
 
 	# Last.fm username
 
-	match /set lastfm (.+)/, method: :set_lastfm
+	match /set lastfm (.+)/i, method: :set_lastfm
 	def set_lastfm(m, username)
 		return unless ignore_nick(m.user.nick).nil?
 		begin
@@ -29,7 +29,7 @@ class UserSet
 
 	# Weather location
 
-	match /set location (.+)/, method: :set_location
+	match /set location (.+)/i, method: :set_location
 	def set_location(m, areacode)
 		return unless ignore_nick(m.user.nick).nil?
 		begin
