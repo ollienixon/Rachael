@@ -82,6 +82,13 @@ class InsultDB
 	property(:insult, Text)
 end 
 
+class GreenText
+	include DataMapper::Resource
+	property(:id, Serial)
+	property(:text, Text)
+end 
+
+
 DataMapper.finalize
 
 
@@ -122,6 +129,7 @@ require_relative './plugins/rand.rb'              # Pick
 require_relative './plugins/youtube.rb'           # Youtube
 require_relative './plugins/bing.rb'              # Bing
 require_relative './plugins/answers.rb'           # Answers
+require_relative './plugins/greentext.rb'         # Green
 
 
 bot = Cinch::Bot.new do
@@ -135,7 +143,7 @@ bot = Cinch::Bot.new do
 		c.realname          = $BOTNICK
 		c.user              = $BOTNICK
 		c.channels          = [] # Leave this empty
-		c.plugins.plugins   = [Basic, Admin, UserSet, UrbanDictionary, Weather, Lastfm, Uri, Translate, Twitter, Insult, Eightball, Pick, Youtube, Bing, Answers]
+		c.plugins.plugins   = [Basic, Admin, UserSet, UrbanDictionary, Weather, Lastfm, Uri, Translate, Twitter, Insult, Eightball, Pick, Youtube, Bing, Answers, Green]
 	end
 end
 
