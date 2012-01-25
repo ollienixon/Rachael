@@ -9,15 +9,21 @@ class Green
 
 	listen_to :channel
 	def listen(m)
-		return unless ignore_nick(m.user.nick).nil? and disable_passive(m.channel.name).nil?
+		return unless ignore_nick(m.user.nick).nil? 
 
-		if m.message.match(/^3>/)
+		if m.message.match(/^0?3>/)
 			begin
-				new = GreenText.new(:text => m.message)
+				return unless m.message.length < 141
+
+				message = m.message.gsub(/\x1f|\x02|\x12|\x0f|\x16|\x03(?:\d{1,2}(?:,\d{1,2})?)?/, '')
+
+				new = GreenText.new(:text => message)
 				new.save
 
+				return unless disable_passive(m.channel.name).nil?
+
 				randomGreen = GreenText.get(1+rand(GreenText.count))
-				m.reply randomGreen.text
+				m.reply "3#{randomGreen.text}"
 			rescue
 				nil
 			end
