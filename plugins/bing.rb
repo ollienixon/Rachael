@@ -12,19 +12,25 @@ class Bing
 
 			@bitly = Bitly.new($BITLYUSER, $BITLYAPI)
 
-			@url = open("http://api.bing.net/xml.aspx?AppId=#{$BINGAPI}&Version=2.2&Market=en-US&Query=#{URI.escape(query)}&Sources=web&Web.Count=1")
+			@url = open("http://api.bing.net/xml.aspx?AppId=#{$BINGAPI}&Version=2.1&Market=en-US&Query=#{URI.escape(query)}&Sources=web&Web.Count=2&Options=EnableHighlighting&Web.Options=DisableQueryAlterations+DisableHostCollapsing")
 			@url = Nokogiri::XML(@url)
 
-			title      = @url.xpath("//web:WebResult[1]/web:Title", {"web" => "http://schemas.microsoft.com/LiveSearch/2008/04/XML/web"}).text
-			desc       = @url.xpath("//web:WebResult[1]/web:Description", {"web" => "http://schemas.microsoft.com/LiveSearch/2008/04/XML/web"}).text
-			url        = @url.xpath("//web:WebResult[1]/web:Url", {"web" => "http://schemas.microsoft.com/LiveSearch/2008/04/XML/web"}).text
-			cache      = @url.xpath("//web:WebResult[1]/web:CacheUrl", {"web" => "http://schemas.microsoft.com/LiveSearch/2008/04/XML/web"}).text
+			def search(number)
+				title      = @url.xpath("//web:WebResult[#{number}]/web:Title", {"web" => "http://schemas.microsoft.com/LiveSearch/2008/04/XML/web"}).text
+				desc       = @url.xpath("//web:WebResult[#{number}]/web:Description", {"web" => "http://schemas.microsoft.com/LiveSearch/2008/04/XML/web"}).text
+				url        = @url.xpath("//web:WebResult[#{number}]/web:Url", {"web" => "http://schemas.microsoft.com/LiveSearch/2008/04/XML/web"}).text
 
-			cache = @bitly.shorten(cache)
+				title = title.gsub(/(|)/, "")
+				desc = desc.gsub(/(|)/, "")
+
+				"2,0Bing %s: \"%s\" %s… | %s" % [number, title, desc[0..100], url]
+			end
+
 			more  = @bitly.shorten("http://www.bing.com/search?q=#{URI.escape(query)}")
 
-			m.reply "2,0Bing %s > %s | Cached: %s; More results: %s" % [title, url, cache.shorten, more.shorten]
-			m.reply "2,0Bing #{desc}" if desc.length > 1
+			m.reply search(1)
+			m.reply search(2)
+			m.reply "2,0Bing +: More results #{more.shorten}"
 		rescue
 			m.reply "2,0Bing Error"
 		end

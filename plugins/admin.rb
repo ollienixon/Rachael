@@ -118,7 +118,7 @@ class Admin
 
 	match /add admin (.+)/i, method: :add_admin
 	def add_admin(m, username)
-		return unless check_admin(m.user)
+		return unless m.user.nick.downcase == $OWNER
 
 		begin
 			old = AdminDB.first(:nick => username.downcase)
