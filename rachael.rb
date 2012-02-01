@@ -43,6 +43,10 @@ $LASTFMAPI     = "" # For all last.fm functions
 $WOLFRAMAPI    = "" # For Answers
 
 
+# If you want to use SQLite
+#DBFILE = "/path/to/sqlite.db"
+#DataMapper.setup(:default, "sqlite3://" + DBFILE)
+
 DataMapper.setup(:default, ENV['DATABASE_URL'] || 'postgres://localhost/mydb') # This is what Heroku uses
 
 class LastfmDB 
