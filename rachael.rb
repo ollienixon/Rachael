@@ -105,6 +105,7 @@ class GreenText
 	property(:text, Text)
 end 
 
+DataMapper.finalize
 
 # If database doesn't exist, create. Else update
 if(!File.exists?(DBFILE))
