@@ -62,7 +62,20 @@ class IgnoreDB
 	property(:nick, String, :unique => true)
 end 
 
+class LocationDB 
+	include DataMapper::Resource
+	property(:id, Serial)
+	property(:nick, String, :unique => true)
+	property(:location, String)
+end 
+
 class PassiveDB
+	include DataMapper::Resource
+	property(:id, Serial)
+	property(:channel, String, :unique => true)
+end 
+
+class PassiveFDB
 	include DataMapper::Resource
 	property(:id, Serial)
 	property(:channel, String, :unique => true)
@@ -107,6 +120,13 @@ def disable_passive(channel)
 	check = PassiveDB.first(:channel => channel.downcase)
 	check.nil? ? (return nil) : (return true)
 end
+
+# Passive on/off
+def disable_passive_files(channel)
+	check = PassiveFDB.first(:channel => channel.downcase)
+	check.nil? ? (return nil) : (return true)
+end
+
 
 # Bot admins
 def check_admin(user)
