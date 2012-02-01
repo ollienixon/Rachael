@@ -44,9 +44,13 @@ $WOLFRAMAPI    = "" # For Answers
 
 
 # If you want to use SQLite
+# uncomment lines 50, 51
+# clear lines 115, 125
+
 #DBFILE = "/path/to/sqlite.db"
 #DataMapper.setup(:default, "sqlite3://" + DBFILE)
 
+# Comment out this line if you're using sqlite
 DataMapper.setup(:default, ENV['DATABASE_URL'] || 'postgres://localhost/mydb') # This is what Heroku uses
 
 class LastfmDB 
@@ -107,13 +111,18 @@ end
 
 DataMapper.finalize
 
-# If database doesn't exist, create. Else update
-if(!File.exists?(DBFILE))
-	DataMapper.auto_migrate!
-elsif(File.exists?(DBFILE))
-	DataMapper.auto_upgrade!
-end
 
+=begin
+
+	# This is for sqlite
+
+	if(!File.exists?(DBFILE))
+		DataMapper.auto_migrate!
+	elsif(File.exists?(DBFILE))
+		DataMapper.auto_upgrade!
+	end
+
+=end
 
 # Ignore list
 def ignore_nick(user)

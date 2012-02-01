@@ -118,7 +118,7 @@ class Admin
 
 	match /add admin (.+)/i, method: :add_admin
 	def add_admin(m, username)
-		return unless m.user.nick.downcase == $OWNER
+		return unless m.user.nick.downcase == $BOTOWNER
 
 		begin
 			old = AdminDB.first(:nick => username.downcase)
@@ -136,7 +136,7 @@ class Admin
 
 	match /remove admin (.+)/i, method: :del_admin
 	def del_admin(m, username)
-		return unless check_admin(m.user) and m.user.nick.downcase == $OWNER
+		return unless m.user.nick.downcase == $BOTOWNER
 
 		begin
 			old = AdminDB.first(:nick => username.downcase)
@@ -205,6 +205,41 @@ class Admin
 			new.save
 
 			m.reply "No longer reacting to URIs"
+		rescue
+			m.reply "Oops something went wrong", true
+			raise
+		end
+	end
+
+	match /file info on(?: (.+))?/i, method: :passive_files_on
+	def passive_files_on(m, channel)
+		return unless check_admin(m.user)
+		channel ||= m.channel.to_s
+
+		begin
+			old = PassiveFDB.first(:channel => channel.downcase)
+			old.destroy! unless old.nil?
+
+			m.reply "Now reacting to file URIs"
+		rescue
+			m.reply "Oops something went wrong", true
+			raise
+		end
+	end
+
+	match /file info off(?: (.+))?/i, method: :passive_files_off
+	def passive_files_off(m, channel)
+		return unless check_admin(m.user)
+		channel ||= m.channel.to_s
+
+		begin
+			old = PassiveFDB.first(:channel => channel.downcase)
+			old.destroy! unless old.nil?
+
+			new = PassiveFDB.new(:channel => channel.downcase)
+			new.save
+
+			m.reply "No longer reacting to file URIs"
 		rescue
 			m.reply "Oops something went wrong", true
 			raise
