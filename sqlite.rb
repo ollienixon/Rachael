@@ -1,5 +1,4 @@
 require 'data_mapper'
-require 'mechanize'
 
 
 DBFILE = "/path/to/sqlite.db"

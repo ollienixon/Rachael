@@ -106,7 +106,12 @@ class GreenText
 end 
 
 
-DataMapper.finalize
+# If database doesn't exist, create. Else update
+if(!File.exists?(DBFILE))
+	DataMapper.auto_migrate!
+elsif(File.exists?(DBFILE))
+	DataMapper.auto_upgrade!
+end
 
 
 # Ignore list
