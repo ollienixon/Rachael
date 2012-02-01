@@ -56,12 +56,6 @@ class InsultDB
 	property(:insult, Text)
 end 
 
-class SearchDB
-	include DataMapper::Resource
-	property(:id, Serial)
-	property(:channel, String, :unique => true)
-end 
-
 class GreenText
 	include DataMapper::Resource
 	property(:id, Serial)
