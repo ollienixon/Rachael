@@ -49,11 +49,12 @@ $BITLYAPI      = "" # bitly api key  |
 $LASTFMAPI     = "" # For all last.fm functions
 $WOLFRAMAPI    = "" # For Answers
 
-#DBFILE = "/path/to/sqlite.db"
-#DataMapper.setup(:default, "sqlite3://" + DBFILE)
+# This is for SQLite
+DBFILE = "/path/to/sqlite.db"
+DataMapper.setup(:default, "sqlite3://" + DBFILE)
 
-# Comment out this line if you're using sqlite
-DataMapper.setup(:default, ENV['DATABASE_URL'] || 'postgres://localhost/mydb') # This is what Heroku uses
+# This is for postgres (Heroku)
+# DataMapper.setup(:default, ENV['DATABASE_URL'] || 'postgres://localhost/mydb') 
 
 class LastfmDB 
 	include DataMapper::Resource
@@ -107,6 +108,16 @@ end
 
 DataMapper.finalize
 
+
+# This is for sqlite
+
+if(!File.exists?(DBFILE))
+	DataMapper.auto_migrate!
+elsif(File.exists?(DBFILE))
+	DataMapper.auto_upgrade!
+end
+
+
 # Ignore list
 def ignore_nick(user)
 	check = IgnoreDB.first(:nick => user.downcase)
@@ -131,17 +142,6 @@ def check_admin(user)
 	@admins = AdminDB.first(:nick => user.authname.downcase)
 end
 
-=begin
-
-	# This is for sqlite
-
-	if(!File.exists?(DBFILE))
-		DataMapper.auto_migrate!
-	elsif(File.exists?(DBFILE))
-		DataMapper.auto_upgrade!
-	end
-
-=end
 
 # Basic plugins
 require_relative './plugins/basic.rb'
@@ -169,7 +169,7 @@ require_relative './plugins/tvrage.rb'            # Tvrage
 bot = Cinch::Bot.new do
 	configure do |c|
 		c.plugins.prefix    = /^:/
-		c.server            = "irc.rizon.net"
+		c.server            = ""
 		c.port              = 6697
 		c.ssl.use           = true
 		c.ssl.verify        = false
@@ -177,7 +177,25 @@ bot = Cinch::Bot.new do
 		c.realname          = $BOTNICK
 		c.user              = $BOTNICK
 		c.channels          = []
-		c.plugins.plugins   = [Basic, Admin, UserSet, UrbanDictionary, Weather, Lastfm, Uri, Translate, Twitter, Insult, Eightball, Pick, Youtube, Bing, Answers, Tvrage]
+		c.plugins.plugins   = [
+			Basic, 
+			Admin, 
+			UserSet, 
+			UrbanDictionary, 
+			Weather, 
+			Lastfm, 
+			Uri, 
+			Translate, 
+			Twitter, 
+			#TweetFeed,
+			Insult, 
+			Eightball, 
+			Pick, 
+			Youtube, 
+			Bing, 
+			Answers, 
+			Tvrage
+		]
 	end
 end
 
