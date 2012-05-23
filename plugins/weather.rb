@@ -23,7 +23,7 @@ class Weather
 	end 
 
 
-	match /w(?:e(?:ather)?)?(?: (.+))?$/i, method: :weather
+	match /w(?:e(?:ather)?)?(?: (.+))?$/iu, method: :weather
 	def weather(m, loc = nil)
 		return unless ignore_nick(m.user.nick).nil?
 
@@ -46,15 +46,15 @@ class Weather
 
 			return unless city.length > 1
 
-			text = "#{city}: #{condition} #{tempc}°C/#{tempf}°F. #{humidity}. #{wind}"
+			text = "#{city} 2| #{condition} #{tempc}°C/#{tempf}°F. #{humidity}. #{wind}"
 
 		rescue 
 			m.reply "Error getting weather for #{loc}"
 		end
-		m.reply "0,2Weather #{text}"
+		m.reply "Weather 2| #{text}"
 	end
 
-	match /f(?:o(?:recast)?)?(?: (.+))?$/i, method: :forecast
+	match /f(?:o(?:recast)?)?(?: (.+))?$/iu, method: :forecast
 	def forecast(m, loc = nil)
 		return unless ignore_nick(m.user.nick).nil?
 
@@ -69,7 +69,7 @@ class Weather
 			forecast  = url.xpath("//forecast_conditions")
 			city      = url.xpath("//forecast_information/city/@data")
 			city      = Iconv.conv("UTF-8", 'ISO-8859-1', city.to_s)
-			text      = "#{city}: "
+			text      = "#{city} 2| "
 
 			return unless city.length > 1
 
@@ -89,6 +89,6 @@ class Weather
 		rescue 
 			text = "Error getting forecast for #{loc}"
 		end
-		m.reply "0,2Forecast #{text}"
+		m.reply "Forecast 2| #{text}"
 	end
 end

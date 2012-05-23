@@ -23,16 +23,16 @@ class Bing
 				title = title.gsub(/(|)/, "")
 				desc = desc.gsub(/(|)/, "")
 
-				"2,0Bing %s: \"%s\" %s… | %s" % [number, title, desc[0..100], url]
+				"Bing 2| \"%s\" %s… 2| %s" % [title, desc[0..100], url]
 			end
 
 			more  = @bitly.shorten("http://www.bing.com/search?q=#{URI.escape(query)}")
 
 			m.reply search(1)
 			m.reply search(2)
-			m.reply "2,0Bing +: More results #{more.shorten}"
+			m.reply "Bing 2| More results #{more.shorten}"
 		rescue
-			m.reply "2,0Bing Error"
+			m.reply "Bing 2| Error"
 		end
 	end
 end

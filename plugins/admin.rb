@@ -136,7 +136,7 @@ class Admin
 
 	match /remove admin (.+)/i, method: :del_admin
 	def del_admin(m, username)
-		return unless m.user.nick.downcase == $BOTOWNER
+		return unless m.user.nick.to_s.downcase == $BOTOWNER
 
 		begin
 			old = AdminDB.first(:nick => username.downcase)

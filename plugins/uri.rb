@@ -13,7 +13,7 @@ class Uri
 		return nil if minutes < 0
 
 		case minutes
-		when 0..1      then "Just now"
+		when 0..1      then "just now"
 		when 2..59     then "#{minutes.to_s} minutes ago"
 		when 60..1439        
 			words = (minutes/60)
@@ -57,7 +57,11 @@ class Uri
 	def listen(m)
 		return unless ignore_nick(m.user.nick).nil? and disable_passive(m.channel.name).nil?
 
-		URI.extract(m.message, ["http", "https"]) do |link|
+		message = m.message.gsub(' ', "****")
+		message = Addressable::URI.parse(message).normalize
+		message = message.to_s.gsub('****', ' ')
+
+		URI.extract(message, ["http", "https"]).first(1).each do |link|
 
 			uri = URI.parse(link)
 
@@ -88,6 +92,7 @@ class Uri
 				if page.header['content-type'].include? "html"
 
 					case uri.host
+
 					when "boards.4chan.org"
 
 						doc = @agent.get(link)
@@ -95,41 +100,26 @@ class Uri
 
 						if bang[5].include? "/res/"
 
-							op = bang[5].include? bang[8] if bang[8] != nil
-							quote = bang[8].include? "q" if bang[8] != nil
-
-							# Reply
-							if bang[8] != nil and op == false and quote == false 
-								poster    = doc.search("//td[@id=#{bang[8]}]/span[@class='commentpostername']").text
-								trip      = doc.search("//td[@id=#{bang[8]}]/span[@class='postertrip']").text
-								postid    = bang[8]
-								reply     = doc.search("//td[@id=#{bang[8]}]/blockquote").inner_html.gsub("<br>", " ").gsub("<font class=\"unkfunc\">", "3").gsub("</font>", "").gsub(/<\/?[^>]*>/, "").gsub("&gt;", ">")
-								image     = doc.search("//td[@id=#{bang[8]}]/a/@href").text
-
-								image = "File: #{image} | " if image.length > 1
-								reply = reply[0..160]+" …" if reply.length > 160
-
-								m.reply "3%s%s No.%s | %s%s" % [poster, trip, postid, image, reply]
-							# OP
+							if bang[8] != nil
+								postnumber = bang[8].gsub('p', '')
 							else
-								subject   = doc.search("//span[@class='filetitle']").text
-								poster    = doc.search("//span[@class='postername']").text
-								trip      = doc.search("//form/span[@class='postertrip']").text
-								postid    = doc.search("//form/span/a[@class='quotejs'][2]").text
-								reply     = doc.search("//form/blockquote[1]").inner_html.gsub("<br>", " ").gsub("<font class=\"unkfunc\">", "3").gsub("</font>", "").gsub(/<\/?[^>]*>/, "").gsub("&gt;", ">")
-								image     = doc.search("//form/a[1]/@href").text
-								date      = doc.search("//span[@class='posttime']").text
-
-								subject = "\"#{subject}\" " if subject.length > 1
-								reply = "| "+reply if reply.length > 1
-								reply = reply[0..160]+" …" if reply.length > 160
-
-								#date      = date[-17..-8] # Get the date from the file name
-								#t         = date.to_i
-								#da        = Time.at(t).strftime("%b %d %R")
-
-								m.reply "%s3%s%s %s No.%s | File: %s %s" % [subject, poster, trip, date, postid, image, reply]
+								postnumber = bang[5].gsub(/\/(.*)\/res\//, '')
 							end
+
+							subject   = doc.search("//div[@id='pi#{postnumber}']//span[@class='subject']").text
+							poster    = doc.search("//div[@id='pi#{postnumber}']//span[@class='name']").text
+							trip      = doc.search("//div[@id='pi#{postnumber}']//span[@class='postertrip']").text
+							reply     = doc.search("//div[@id='p#{postnumber}']/blockquote").inner_html.gsub("<br>", " ").gsub("<span class=\"quote\">", "3").gsub("</span>", "").gsub(/<span class="spoiler"?[^>]*>/, "1,1").gsub("</span>", "")
+							reply     = reply.gsub(/<\/?[^>]*>/, "").gsub("&gt;", ">")
+							image     = doc.search("//span[@id='fT#{postnumber}']/a[1]/@href").text
+							date      = doc.search("//div[@id='p#{postnumber}']//span[@class='dateTime']").text
+
+							subject = subject+" " if subject != ""
+							reply = " 3| "+reply if reply != ""
+							reply = reply[0..160]+" ..." if reply.length > 160
+							image = " 3| File: http:"+image if image.length > 1
+
+							m.reply "4chan 3| %s3%s%s %s No.%s%s%s" % [subject, poster, trip, date, postnumber, image, reply]
 
 						else # Board Index Title
 							page = @agent.get(link)
@@ -141,7 +131,7 @@ class Uri
 							end
 
 							uri = URI.parse(page.uri.to_s)
-							m.reply "0,3Title %s (%s)" % [title, uri.host]
+							m.reply "Title 3| %s 3| %s" % [title, uri.host]
 						end
 
 					when "twitter.com"
@@ -149,34 +139,50 @@ class Uri
 						bang = link.split("/")
 						begin
 							if bang[5].include? "status"
-								twurl = Nokogiri::XML(open("http://api.twitter.com/1/statuses/show.xml?id=#{bang[6]}&include_entities=false", :read_timeout=>3).read)
+								twurl = Nokogiri::XML(open("http://api.twitter.com/1/statuses/show.xml?id=#{bang[6]}&include_entities=true", :read_timeout=>3).read)
 
 								tweettext   = twurl.xpath("//status/text").text.gsub(/\s+/, ' ')
 								posted      = twurl.xpath("//status/created_at").text
 								name        = twurl.xpath("//status/user/name").text
 								screenname  = twurl.xpath("//status/user/screen_name").text
 
+								urls        = twurl.xpath("//status/entities/urls/url")
+
+								urls.each do |rep|
+									shortened   = rep.xpath("url").text
+									expanded    = rep.xpath("expanded_url").text
+									tweettext   = tweettext.gsub(shortened, expanded)
+								end
+
 								time        = Time.parse(posted)
 								time        = minutes_in_words(time)
 
-								m.reply "12Twitter #{name} (@#{screenname}): #{tweettext} | Posted #{time}"
+								m.reply "Twitter 12| #{name} (@#{screenname}) 12| #{tweettext} 12| Posted #{time}"
 							elsif bang[4].include? "status"
-								twurl = Nokogiri::XML(open("http://api.twitter.com/1/statuses/show.xml?id=#{bang[5]}&include_entities=false", :read_timeout=>3).read)
+								twurl = Nokogiri::XML(open("http://api.twitter.com/1/statuses/show.xml?id=#{bang[5]}&include_entities=true", :read_timeout=>3).read)
 
 								tweettext   = twurl.xpath("//status/text").text.gsub(/\s+/, ' ')
 								posted      = twurl.xpath("//status/created_at").text
 								name        = twurl.xpath("//status/user/name").text
 								screenname  = twurl.xpath("//status/user/screen_name").text
 
+								urls        = twurl.xpath("//status/entities/urls/url")
+
+								urls.each do |rep|
+									shortened   = rep.xpath("url").text
+									expanded    = rep.xpath("expanded_url").text
+									tweettext   = tweettext.gsub(shortened, expanded)
+								end
+
 								time        = Time.parse(posted)
 								time        = minutes_in_words(time)
 
-								m.reply "12Twitter #{name} (@#{screenname}): #{tweettext} | Posted #{time}"
+								m.reply "Twitter 12| #{name} (@#{screenname}) 12| #{tweettext} 12| Posted #{time}"
 							else
-								m.reply "0,3Title Twitter (twitter.com)"
+								m.reply "Title 3| Twitter 3| twitter.com"
 							end
 						rescue
-							m.reply "0,3Title Twitter (twitter.com)"
+							m.reply "Title 3| Twitter 3| twitter.com"
 						end
 
 					else # Generic Title
@@ -189,7 +195,7 @@ class Uri
 						end
 
 						uri = URI.parse(page.uri.to_s)
-						m.reply "0,3Title %s (%s)" % [title, uri.host]
+						m.reply "Title 3| %s 3| %s" % [title, uri.host]
 					end
 
 				# File
@@ -215,11 +221,11 @@ class Uri
 
 					uri = URI.parse(page.uri.to_s)
 
-					m.reply "0,3File %s%s %s (%s)" % [filename, type, size, uri.host]
+					m.reply "File 3| %s%s %s 3| %s" % [filename, type, size, uri.host]
 				end
 
 			rescue Mechanize::ResponseCodeError => ex
-				m.reply "0,3Title #{ex.response_code} Error" 
+				m.reply "Title 3| #{ex.response_code} Error" 
 			rescue
 				nil
 			end

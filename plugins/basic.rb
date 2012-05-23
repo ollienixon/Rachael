@@ -29,9 +29,9 @@ class Basic
 		Channel(m.channel.name).join(m.channel.key)
 	end
 
-	match /help/, method: :help
+	match /help$/i, method: :help
 	def help(m)
-		m.reply "Function list: 12#{$BOTURL} Source: 12#{$BOTGIT}", true
+		m.reply "Function list: 12#{$BOTURL} Source: 12#{$BOTGIT} Need more help? Join 12#Developers", true
 	end
 
 end

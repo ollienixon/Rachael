@@ -19,12 +19,12 @@ class UrbanDictionary
 
 			if define.length > 255
 				more = @bitly.shorten("http://www.urbandictionary.com/define.php?term=#{CGI.escape(word)}")
-				define = "#{define[0..255]}… #{more.shorten}"
+				define = "#{define[0..255]}... #{more.shorten}"
 			end
 
-			m.reply "06UrbanDictionary #{word}: #{define}"
+			m.reply "UrbanDictionary 06| #{word} 06| #{define}"
 		rescue
-			m.reply "06UrbanDictionary Error getting definition for '#{word}'"
+			m.reply "UrbanDictionary 06| #{word} 06| Could not find definition"
 		end
 	end
 end

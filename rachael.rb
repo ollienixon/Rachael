@@ -4,15 +4,18 @@ Encoding.default_external = "UTF-8"
 Encoding.default_internal = "UTF-8"
 
 require 'rubygems'
+require 'heroku'
+
 require 'cinch'
 
 # Database stuff
-require 'data_mapper'
+require 'dm-core'
 require 'dm-postgres-adapter'
 require 'do_postgres'
 
 # Web stuff
 require 'mechanize'
+require 'addressable/uri'
 require 'uri'
 require 'open-uri'
 require 'nokogiri'
@@ -35,17 +38,16 @@ $BOTOWNER      = "" # Make sure this is lowercase
 $BOTURL        = "" # Help page
 $BOTGIT        = "https://github.com/ibkshash/Rachael"
 
+# Twitter Feed
+$TWITTERFEED    = ""
+$TWITTERCHANNEL = ""
+
 # API Keys
 $BINGAPI       = "" # For bing search and Translate plugins
 $BITLYUSER     = "" # bitly username | Many plugins use this
 $BITLYAPI      = "" # bitly api key  |
 $LASTFMAPI     = "" # For all last.fm functions
 $WOLFRAMAPI    = "" # For Answers
-
-
-# If you want to use SQLite
-# uncomment lines 50, 51
-# clear lines 115, 125
 
 #DBFILE = "/path/to/sqlite.db"
 #DataMapper.setup(:default, "sqlite3://" + DBFILE)
@@ -103,26 +105,7 @@ class InsultDB
 	property(:insult, Text)
 end 
 
-class GreenText
-	include DataMapper::Resource
-	property(:id, Serial)
-	property(:text, Text)
-end 
-
 DataMapper.finalize
-
-
-=begin
-
-	# This is for sqlite
-
-	if(!File.exists?(DBFILE))
-		DataMapper.auto_migrate!
-	elsif(File.exists?(DBFILE))
-		DataMapper.auto_upgrade!
-	end
-
-=end
 
 # Ignore list
 def ignore_nick(user)
@@ -142,47 +125,59 @@ def disable_passive_files(channel)
 	check.nil? ? (return nil) : (return true)
 end
 
-
 # Bot admins
 def check_admin(user)
 	user.refresh
 	@admins = AdminDB.first(:nick => user.authname.downcase)
 end
 
+=begin
+
+	# This is for sqlite
+
+	if(!File.exists?(DBFILE))
+		DataMapper.auto_migrate!
+	elsif(File.exists?(DBFILE))
+		DataMapper.auto_upgrade!
+	end
+
+=end
 
 # Basic plugins
 require_relative './plugins/basic.rb'
 require_relative './plugins/admin.rb'             # Admin
 
 # Advacned plugins
-require_relative './plugins/userset.rb'           # Set options
+require_relative './plugins/userset.rb'           # UserSet
 require_relative './plugins/urbandictionary.rb'   # UrbanDictionary
 require_relative './plugins/weather.rb'           # Weather
 require_relative './plugins/lastfm.rb'            # Lastfm
 require_relative './plugins/uri.rb'               # Uri
 require_relative './plugins/translate.rb'         # Translate
 require_relative './plugins/twitter.rb'           # Twitter
+#require_relative './plugins/tweetfeed.rb'        # TweetFeed
 require_relative './plugins/hello.rb'             # Insult
 require_relative './plugins/8ball.rb'             # Eightball
 require_relative './plugins/rand.rb'              # Pick
 require_relative './plugins/youtube.rb'           # Youtube
 require_relative './plugins/bing.rb'              # Bing
 require_relative './plugins/answers.rb'           # Answers
-require_relative './plugins/greentext.rb'         # Green
+require_relative './plugins/tvrage.rb'            # Tvrage
+
 
 
 bot = Cinch::Bot.new do
 	configure do |c|
 		c.plugins.prefix    = /^:/
-		c.server            = ""
+		c.server            = "irc.rizon.net"
 		c.port              = 6697
 		c.ssl.use           = true
 		c.ssl.verify        = false
 		c.nick              = $BOTNICK
 		c.realname          = $BOTNICK
 		c.user              = $BOTNICK
-		c.channels          = [] # Leave this empty
-		c.plugins.plugins   = [Basic, Admin, UserSet, UrbanDictionary, Weather, Lastfm, Uri, Translate, Twitter, Insult, Eightball, Pick, Youtube, Bing, Answers, Green]
+		c.channels          = []
+		c.plugins.plugins   = [Basic, Admin, UserSet, UrbanDictionary, Weather, Lastfm, Uri, Translate, Twitter, Insult, Eightball, Pick, Youtube, Bing, Answers, Tvrage]
 	end
 end
 

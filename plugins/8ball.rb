@@ -3,7 +3,7 @@
 class Eightball
 	include Cinch::Plugin
 
-	match /8ball (.+)/i
+	match /8ball (.+)$/i
 	def execute (m, s)
 		return unless ignore_nick(m.user.nick).nil?
 
@@ -27,7 +27,8 @@ class Eightball
 			"My reply is no",
 			"My sources say no",
 			"Outlook not so good",
-			"Very doubtful"
+			"Very doubtful",
+			"Don't care, go away"
 		]
 
 		begin

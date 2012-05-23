@@ -11,7 +11,7 @@ class Twitter
 		return nil if minutes < 0
 
 		case minutes
-		when 0..1      then "Just now"
+		when 0..1      then "just now"
 		when 2..59     then "#{minutes.to_s} minutes ago"
 		when 60..1439        
 			words = (minutes/60)
@@ -55,21 +55,29 @@ class Twitter
 		return unless ignore_nick(m.user.nick).nil?
 
 		begin
-			url = Nokogiri::XML(open("http://api.twitter.com/1/statuses/user_timeline.xml?screen_name=#{query}&count=1&include_rts=true&exclude_replies=true", :read_timeout=>3).read)
+			url = Nokogiri::XML(open("http://api.twitter.com/1/statuses/user_timeline.xml?screen_name=#{query}&count=1&include_rts=true&exclude_replies=true&include_entities=true", :read_timeout=>3).read)
 
 			tweettext   = url.xpath("//status/text").text.gsub(/\s+/, ' ')
 			posted      = url.xpath("//status/created_at").text
 			name        = url.xpath("//statuses/status/user/name").text
 			screenname  = url.xpath("//statuses/status/user/screen_name").text
 
+			urls        = url.xpath("//status/entities/urls/url")
+
+			urls.each do |rep|
+				shortened   = rep.xpath("url").text
+				expanded    = rep.xpath("expanded_url").text
+				tweettext   = tweettext.gsub(shortened, expanded)
+			end
+
 			time        = Time.parse(posted)
 			time        = minutes_in_words(time)
 
-			m.reply "12Twitter #{name} (@#{screenname}): #{tweettext} | Posted #{time}"
+			m.reply "Twitter 12| #{name} (@#{screenname}) 12| #{tweettext} 12| Posted #{time}"
 		rescue Timeout::Error
-			m.reply "12Twitter Timeout Error. Maybe twitter is down?"
+			m.reply "Twitter 12| Timeout Error. Maybe twitter is down?"
 		rescue
-			m.reply "12Twitter Error getting tweet for #{query}"
+			m.reply "Twitter 12| #{query} 12| Could not get tweet"
 		end
 	end
 end
