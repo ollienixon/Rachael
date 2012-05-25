@@ -161,6 +161,7 @@ require_relative './plugins/8ball.rb'             # Eightball
 require_relative './plugins/rand.rb'              # Pick
 require_relative './plugins/youtube.rb'           # Youtube
 require_relative './plugins/bing.rb'              # Bing
+require_relative './plugins/google.rb'            # Google
 require_relative './plugins/answers.rb'           # Answers
 require_relative './plugins/tvrage.rb'            # Tvrage
 
@@ -193,6 +194,7 @@ bot = Cinch::Bot.new do
 			Pick, 
 			Youtube, 
 			Bing, 
+			Google,
 			Answers, 
 			Tvrage
 		]
